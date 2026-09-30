@@ -200,7 +200,7 @@ tailwind.config = { theme: { extend: {
 <dialog id="cfgModal" class="rounded-3xl p-0 w-[min(480px,94vw)]">
   <div class="p-6">
     <h3 class="font-display font-bold text-lg text-pine-950">Conectar Supabase</h3>
-    <p class="text-sm text-slate-500 mt-1">Pega tu <b>Project URL</b> y <b>anon key</b> (Supabase → Settings → API). Se guardan solo en tu navegador. Ejecuta antes el <b>supabase_schema.sql</b> del repo.</p>
+    <p class="text-sm text-slate-500 mt-1">Tus datos ya vienen precargados. Solo guarda para verificar la conexión.</p>
     <label class="text-xs font-semibold mt-4 block">SUPABASE_URL</label>
     <input id="cfgUrl" placeholder="https://xyz.supabase.co" class="mt-1 w-full border border-line rounded-xl p-2.5 text-sm" />
     <label class="text-xs font-semibold mt-3 block">SUPABASE_ANON_KEY</label>
@@ -512,10 +512,14 @@ function renderPlanner(){
 }
 
 // ---------------- supabase: guardar / listar
+// ---------------- supabase: cliente (precargado; se puede sobrescribir desde ⚙️)
+const SB_URL_DEFAULT = 'https://pzwefgyeawvpwiatosfx.supabase.co';
+const SB_KEY_DEFAULT = 'sb_publishable_SmMiHxIUbOB7Vdy-QkniUQ_yKPCzU4s';
+function sbCred(key){ return localStorage.getItem(key) || (key==='sb_url' ? SB_URL_DEFAULT : SB_KEY_DEFAULT); }
 function sb(){
-  const url = localStorage.getItem('sb_url'), key = localStorage.getItem('sb_key');
-  if(!url || !key) return null;
-  return supabase.createClient(url, key);
+  const url = sbCred('sb_url'), k = sbCred('sb_key');
+  if(!url || !k) return null;
+  return supabase.createClient(url, k);
 }
 
 // ---------------- auth (login con Supabase)
@@ -596,8 +600,8 @@ async function cerrarSesion(){
   refrescarAuth(); cargarGuardados();
 }
 function abrirConfig(){
-  document.getElementById('cfgUrl').value = localStorage.getItem('sb_url')||'';
-  document.getElementById('cfgKey').value = localStorage.getItem('sb_key')||'';
+  document.getElementById('cfgUrl').value = sbCred('sb_url');
+  document.getElementById('cfgKey').value = sbCred('sb_key');
   document.getElementById('cfgModal').showModal();
 }
 async function guardarConfig(){
