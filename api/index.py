@@ -412,6 +412,7 @@ class GenerateIn(BaseModel):
     ingredientes: object = Field(default_factory=list)  # lista o string
     dias: int = Field(default=7, ge=1, le=7)
     preferencias: List[str] = Field(default_factory=list)
+    dias_nombres: Optional[List[str]] = None  # ej: ["Lunes","Miércoles"]
 
 
 # ---------------------------------------------------------------- endpoints
@@ -436,9 +437,18 @@ def search(q: str = Query(default="", min_length=1)):
 @app.post("/api/generate")
 def generate(body: GenerateIn):
     ingredientes = parsear_ingredientes(body.ingredientes)
-    dias = max(1, min(7, int(body.dias or 7)))
     prefs = body.preferencias or []
 
+    # Días: si el frontend envía nombres seleccionados (globos), se respetan tal cual.
+    nombres = []
+    if body.dias_nombres:
+        elegidos = {normalizar(x) for x in body.dias_nombres}
+        nombres = [d for d in DIAS if normalizar(d) in elegidos]
+    if nombres:
+        dias = len(nombres)
+    else:
+        dias = max(1, min(7, int(body.dias or 7)))
+        nombres = DIAS[:dias]
     ing_norm = [normalizar(i) for i in ingredientes]
 
     candidatas = [r for r in RECETAS if cumple_preferencias(r, prefs)] or list(RECETAS)
@@ -469,16 +479,13 @@ def generate(body: GenerateIn):
     semana = []
     for i, rec in enumerate(menu):
         usados = []
-        extras = []
         for b in rec["ingredientes_base"]:
             nb = normalizar(b)
             if any((ing in nb or nb in ing) for ing in ing_norm):
                 usados.append(b)
-        # ingredientes extra = detalle que no matchea (para lista de compras)
-        detalle_norm = [normalizar(x) for x in rec["ingredientes_detalle"]]
         semana.append(
             {
-                "dia": DIAS[i],
+                "dia": nombres[i],
                 "dia_num": i + 1,
                 "id": rec["id"],
                 "titulo": rec["titulo"],
