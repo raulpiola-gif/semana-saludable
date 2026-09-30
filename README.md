@@ -34,13 +34,16 @@ curl -X POST http://localhost:8000/api/generate \
 
 ## 2) Supabase (5 min)
 1. Crea proyecto en https://supabase.com → copia **Project URL** y **anon key**.
-2. Ve a **SQL Editor** → pega el contenido de `supabase_schema.sql` → **Run**.
+2. Ve a **SQL Editor** → pega el contenido de `supabase_schema.sql` → **Run** (re-ejecutable: si ya lo corriste antes, vuelve a correrlo para agregar login).
 3. Abre la app → botón **⚙️ Supabase** → pega URL + key → Guardar.
-4. Listo: **💾 Guardar menú** escribe en la tabla `menus_guardados`.
 
-> Sin Supabase configurado la app igual funciona (guarda en el navegador).
+## 3) Login
+1. En Supabase ve a **Authentication → Sign In / Up** y verifica que **Email** esté habilitado.
+2. Para entrar sin confirmar el correo: **Authentication → Settings** → desactiva **Confirm email** (solo para desarrollo personal).
+3. (Opcional) Google: **Authentication → Providers → Google** → crea el Client ID en Google Cloud Console y agrega como **Redirect URL** la URL de tu app en Vercel.
+4. En la app pulsa **Ingresar** (arriba a la derecha) → crea tu cuenta o entra con Google. El botón **💾 Guardar menú** ahora guarda en tu cuenta (cada usuario ve solo sus menús; el planner sigue siendo local por dispositivo).
 
-## 3) GitHub
+## 4) GitHub
 ```bash
 cd semana-saludable
 git init
@@ -52,7 +55,7 @@ gh repo create semana-saludable --public --source=. --remote=origin --push
 # git branch -M main && git push -u origin main
 ```
 
-## 4) Publicar en Vercel
+## 5) Publicar en Vercel
 ```bash
 npm i -g vercel
 vercel          # acepta defaults (root = semana-saludable/)
@@ -62,11 +65,11 @@ vercel --prod
 - No requiere variables de entorno (Supabase se configura desde el botón ⚙️ en el navegador).
 
 ## Funciones
-- 🎙️ Dictado por voz (Web Speech API, es-ES) + carga escrita + chips rápidos.
-- 📅 Slider 1–7 días + preferencias (vegetariano/vegano/sin gluten/rápido/económico/proteína).
-- 🍲 24 recetas saludables curadas: tus ingredientes son la base, no el límite.
-- 🌍 Búsqueda internet real: TheMealDB (sin key) + enlaces Google/YouTube por receta.
-- 📖 Vista por día: título → detalle (ingredientes a comprar, pasos, tip).
-- 🛒 Lista de compras agregada + copiar.
-- 💾 Guardar menús (Supabase o local), abrir, borrar.
-- 📅 Planner: asignar menú a un día y **cambiarlo** (🔄 / ✏️).
+- Dictado por voz continuo (Web Speech API, es-ES) + carga escrita + chips rápidos.
+- Globos de días seleccionables (1–7) + preferencias (vegetariano/vegano/sin gluten/rápido/económico/proteína).
+- 24 recetas saludables curadas: tus ingredientes son la base, no el límite.
+- Búsqueda internet real: TheMealDB (sin key) + enlaces Google/YouTube por receta.
+- Vista por día: título → detalle (ingredientes a comprar, pasos, tip).
+- Lista de compras agregada + copiar + exportar a WhatsApp.
+- Login (email + Google) y menús guardados por usuario en Supabase (o local sin cuenta).
+- Planner: asignar menú a un día y **cambiarlo**.
