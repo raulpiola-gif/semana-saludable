@@ -7,7 +7,7 @@ App que genera **recetas saludables para 1–7 días** a partir de tus ingredien
 ## Estructura
 ```
 semana-saludable/
-├── index.html            # Frontend (todo el UX)
+├── public/index.html       # Frontend (todo el UX, servido por el CDN)
 ├── api/index.py          # Backend FastAPI (POST /api/generate, GET /api/search)
 ├── requirements.txt
 ├── vercel.json
@@ -21,7 +21,7 @@ cd semana-saludable
 pip install -r requirements.txt
 uvicorn api.index:app --reload --port 8000
 # abrir index.html con Live Server, o:
-python3 -m http.server 5500
+python3 -m http.server 5500 --directory public
 # → http://localhost:5500 (la app llama a http://localhost:8000/api/...)
 ```
 
@@ -58,7 +58,7 @@ npm i -g vercel
 vercel          # acepta defaults (root = semana-saludable/)
 vercel --prod
 ```
-- Frontend: `index.html` (estático). Backend: `api/index.py` (serverless Python).
+- Frontend: `public/index.html` (CDN estático). Backend: `api/index.py` (función Python).
 - No requiere variables de entorno (Supabase se configura desde el botón ⚙️ en el navegador).
 
 ## Funciones
