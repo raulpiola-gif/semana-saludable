@@ -735,6 +735,37 @@ EN_ES = {
     "jamaican": "jamaiquino", "greek": "griego", "french": "francés",
     "spanish": "español", "american": "americano", "british": "británico",
     "moroccan": "marroquí", "lebanese": "libanés", "turkish": "turco",
+    "&": "y", "pickled": "encurtido", "crispy": "crocante", "creamy": "cremoso",
+    "spicy": "picante", "sweet": "dulce", "smoky": "ahumado", "tasty": "rico",
+    "easy": "fácil", "quick": "rápido", "homemade": "casero", "classic": "clásico",
+    "stuffed": "relleno", "mashed potatoes": "puré de papas", "dressing": "aderezo",
+    "marinade": "marinada", "marinated": "marinado", "glazed": "glaseado",
+    "glaze": "glaseado", "filling": "relleno", "dough": "masa",
+    "casserole": "cazuela", "skillet": "sartén", "wok": "wok",
+    "one-pot": "una olla", "one pot": "una olla", "stir-fry": "salteado",
+    "stir fry": "salteado", "fried rice": "arroz frito", "meatballs": "albóndigas",
+    "meatloaf": "pan de carne", "kebabs": "brochettes", "teriyaki": "teriyaki",
+    "ramen": "ramen", "paella": "paella", "risotto": "risotto",
+    "lasagna": "lasaña", "lasagne": "lasaña", "gnocchi": "ñoquis",
+    "ravioli": "ravioles", "frittata": "frittata", "omelette": "omelette",
+    "quiche": "tarta", "pancakes": "panqueques", "oatmeal": "avena",
+    "granola": "granola", "smoothie": "licuado", "guacamole": "guacamole",
+    "hummus": "hummus", "falafel": "falafel", "tahini": "tahini", "miso": "miso",
+    "polenta": "polenta", "fries": "papas fritas", "french fries": "papas fritas",
+    "onion rings": "aros de cebolla", "coleslaw": "ensalada de repollo",
+    "potato salad": "ensalada de papa", "caesar": "césar", "ceviche": "ceviche",
+    "tartare": "tartar", "tempura": "tempura", "sushi": "sushi", "poke": "poke",
+    "congee": "arroz caldoso", "naan": "pan naan", "pita": "pan pita",
+    "empanada": "empanada", "arepa": "arepa", "tamal": "tamal",
+    "enchilada": "enchilada", "quesadilla": "quesadilla", "fajita": "fajita",
+    "nachos": "nachos", "oyster": "ostra", "oysters": "ostras",
+    "scallops": "vieiras", "lobster": "langosta", "crab": "cangrejo",
+    "anchovy": "anchoa", "sardine": "sardina", "trout": "trucha",
+    "sea bass": "lubina", "sole": "lenguado", "rabbit": "conejo", "veal": "ternera",
+    "steak": "bife", "sirloin": "lomo", "tenderloin": "lomo", "ribs": "costillas",
+    "wings": "alitas", "thighs": "muslos", "thigh": "muslo", "breasts": "pechugas",
+    "breast": "pechuga", "liver": "hígado", "cookies": "galletitas",
+    "muffins": "muffins", "porridge": "papilla de avena",
 }
 
 
@@ -850,6 +881,7 @@ class GenerateIn(BaseModel):
     preferencias: List[str] = Field(default_factory=list)
     dias_nombres: Optional[List[str]] = None  # ej: ["Lunes","Miércoles"]
     excluir: List[str] = Field(default_factory=list)  # ids de recetas a evitar (variedad)
+    fuente: str = Field(default="auto")  # auto | internet | curadas
 
 
 # ---------------------------------------------------------------- endpoints
@@ -923,15 +955,15 @@ def generate(body: GenerateIn):
         pool = [c for c in pool if c["id"] != elegida["id"]] + [elegida]
         idx += 1
 
-    # enriquecer cada día
-    semana = []
+    # enriquecer cada día (menú curado)
+    semana_curada = []
     for i, rec in enumerate(menu):
         usados = []
         for b in rec["ingredientes_base"]:
             nb = normalizar(b)
             if any((ing in nb or nb in ing) for ing in ing_norm):
                 usados.append(b)
-        semana.append(
+        semana_curada.append(
             {
                 "dia": nombres[i],
                 "dia_num": i + 1,
@@ -942,6 +974,7 @@ def generate(body: GenerateIn):
                 "calorias": rec["calorias"],
                 "dificultad": rec["dificultad"],
                 "tags": rec["tags"],
+                "origen": "curada",
                 "ingredientes_usan_tuyos": sorted(set(usados)) or ingredientes[:3],
                 "ingredientes_detalle": rec["ingredientes_detalle"],
                 "pasos": rec["pasos"],
@@ -960,6 +993,28 @@ def generate(body: GenerateIn):
         if len(inspiracion) >= 6:
             break
 
+    # menú con recetas REALES de internet (no lista fija); con fallback a curadas
+    modo = (body.fuente or "auto").lower()
+    semana = semana_curada
+    fuente_usada = "curadas"
+    if modo in ("auto", "internet"):
+        web = []
+        try:
+            web = menu_desde_internet(ingredientes, dias, body.excluir or [])
+        except Exception:
+            web = []
+        if len(web) >= dias:
+            semana = web[:dias]
+            fuente_usada = "internet"
+        elif web and modo == "internet":
+            ids_web = {w["id"] for w in web}
+            faltan = [e for e in semana_curada if e["id"] not in ids_web][: dias - len(web)]
+            semana = web + faltan
+            fuente_usada = "mixta"
+    for i, entry in enumerate(semana):
+        entry["dia"] = nombres[i]
+        entry["dia_num"] = i + 1
+
     # lista de compras agregada (conteo simple de líneas únicas)
     compras_map = {}
     for dia in semana:
@@ -972,6 +1027,7 @@ def generate(body: GenerateIn):
         "ingredientes_recibidos": ingredientes,
         "dias": dias,
         "preferencias": prefs,
+        "fuente_usada": fuente_usada,
         "menu": semana,
         "lista_compras": lista_compras,
         "inspiracion_internet": inspiracion,
