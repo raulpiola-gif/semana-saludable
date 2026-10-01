@@ -1311,15 +1311,18 @@ def llamar_ia(prompt: str, timeout=45) -> str:
 
 
 def menu_desde_ia(ingredientes: List[str], dias_nombres: List[str],
-                 prefs: List[str], comensales: int):
+                 prefs: List[str], comensales: int, evitar: List[str] = None):
     """Genera el menú con IA (creativo, no determinista)."""
     dias_txt = ", ".join(dias_nombres)
+    evita = ""
+    if evitar:
+        evita = f"Evitá estos platos ya mostrados, no los repitas: {', '.join(evitar[:10])}. "
     prompt = (
         f"Sos un chef argentino experto en cocina saludable y económica. "
         f"Ingredientes disponibles: {', '.join(ingredientes)}. Podés sumar otros ingredientes comunes. "
         f"Armá un menú DISTINTO para cada uno de estos días: {dias_txt}. Para {comensales} personas. "
-        f"Devolvé SOLAMENTE un objeto JSON válido (sin markdown ni texto extra) con esta forma exacta: "
-        f'{{\"menu\": [{{\"titulo\": \"Nombre del plato\", \"descripcion\": \"1 línea\", '
+        f"{evita}"
+        f"Devolvé SOLAMENTE un objeto JSON válido (sin markdown ni texto extra) con esta forma exacta: "        f'{{\"menu\": [{{\"titulo\": \"Nombre del plato\", \"descripcion\": \"1 línea\", '
         f'\"tiempo\": \"25 min\", \"calorias\": \"480 kcal\", \"dificultad\": \"Fácil\", '
         f'\"tags\": [\"alto-proteina\"], \"ingredientes_detalle\": [\"200g pollo\"], '
         f'\"pasos\": [\"paso 1\"], \"tip\": \"consejo saludable\"}}]}} '
@@ -1373,6 +1376,7 @@ class GenerateIn(BaseModel):
     preferencias: List[str] = Field(default_factory=list)
     dias_nombres: Optional[List[str]] = None  # ej: ["Lunes","Miércoles"]
     excluir: List[str] = Field(default_factory=list)  # ids de recetas a evitar (variedad)
+    excluir_titulos: List[str] = Field(default_factory=list)  # títulos a evitar (modo IA)
     fuente: str = Field(default="auto")  # auto | argentina | internet | ia | curadas
     comensales: int = Field(default=4, ge=1, le=12)
 
@@ -1420,7 +1424,11 @@ def generate(body: GenerateIn):
     excluidos = set(body.excluir or [])
     pool_base = [r for r in candidatas if r["id"] not in excluidos]
     if len(pool_base) < dias:
-        pool_base = list(candidatas)
+        # ampliar: ignora preferencias antes de repetir algo ya visto
+        pool_base = [r for r in RECETAS if r["id"] not in excluidos]
+    if len(pool_base) < dias:
+        # último recurso (casi imposible con 42 recetas): permite repetir
+        pool_base = list(RECETAS)
     rankeadas = sorted(
         pool_base,
         key=lambda r: score_receta(r, ing_norm) + random.uniform(0, 3.0),
@@ -1491,18 +1499,19 @@ def generate(body: GenerateIn):
     modo = (body.fuente or "auto").lower()
     semana = semana_curada
     fuente_usada = "curadas"
+    excluidos = set(body.excluir or [])
     if modo == "ia":
         # IA generativa (cantidades base para 4; el frontend escala por comensales)
         ia = []
         try:
-            ia = menu_desde_ia(ingredientes, nombres, prefs, 4)
+            ia = menu_desde_ia(ingredientes, nombres, prefs, 4, body.excluir_titulos or [])
         except Exception:
             ia = []
         if len(ia) >= dias:
             semana = ia[:dias]
             fuente_usada = "ia"
         elif ia:
-            ids_ia = {w["id"] for w in ia}
+            ids_ia = {w["id"] for w in ia} | excluidos
             faltan = [e for e in semana_curada if e["id"] not in ids_ia][: dias - len(ia)]
             semana = ia + faltan
             fuente_usada = "mixta"
@@ -1516,7 +1525,7 @@ def generate(body: GenerateIn):
             semana = ar[:dias]
             fuente_usada = "argentina"
         elif ar and modo == "argentina":
-            ids_ar = {w["id"] for w in ar}
+            ids_ar = {w["id"] for w in ar} | excluidos
             faltan = [e for e in semana_curada if e["id"] not in ids_ar][: dias - len(ar)]
             semana = ar + faltan
             fuente_usada = "mixta"
@@ -1530,7 +1539,7 @@ def generate(body: GenerateIn):
             semana = web[:dias]
             fuente_usada = "internet"
         elif web and modo == "internet":
-            ids_web = {w["id"] for w in web}
+            ids_web = {w["id"] for w in web} | excluidos
             faltan = [e for e in semana_curada if e["id"] not in ids_web][: dias - len(web)]
             semana = web + faltan
             fuente_usada = "mixta"

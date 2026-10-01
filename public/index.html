@@ -473,9 +473,10 @@ async function generar(otras=false){
     let excluir = [];
     try { excluir = JSON.parse(localStorage.getItem('ultimo_menu_ids')||'[]'); } catch(_){}
     if(otras && menuActual) excluir = [...new Set([...excluir, ...menuActual.menu.map(m=>m.id)])];
+    const excluir_titulos = (otras && menuActual) ? menuActual.menu.map(m=>m.titulo) : [];
     const r = await fetch(API + '/api/generate', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ ingredientes, dias: diasSel.length, dias_nombres: diasSel, preferencias: getPrefs(), excluir, fuente })
+      body: JSON.stringify({ ingredientes, dias: diasSel.length, dias_nombres: diasSel, preferencias: getPrefs(), excluir, excluir_titulos, fuente })
     });
     if (!r.ok) throw new Error('API '+r.status);
     const data = await r.json();
@@ -484,6 +485,7 @@ async function generar(otras=false){
     pintarMenu(data); pintarCompras(data.lista_compras); pintarInspo(data.inspiracion_internet); actualizarWA();
     document.getElementById('saveBtn').disabled = false;
     document.getElementById('resumen').textContent = `${data.menu.map(m=>m.dia).join(' · ')} — base: ${data.ingredientes_recibidos.join(', ')}${data.fuente_usada?' — fuente: '+(data.fuente_usada==='curadas'?'clásicas':data.fuente_usada):''}`;
+    if(otras) aviso('Nuevas ideas, sin repetir las anteriores.');
   } catch(err){
     console.error(err);
     aviso('No pude contactar la API. Si estás en local, corre:  uvicorn api.index:app --reload --port 8000.');
