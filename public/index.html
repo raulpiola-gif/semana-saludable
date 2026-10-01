@@ -127,7 +127,7 @@ tailwind.config = { theme: { extend: {
             <button id="tabAr" onclick="setFuente('argentina')" class="py-2 rounded-xl text-sm font-semibold">Argentina</button>
             <button id="tabWeb" onclick="setFuente('internet')" class="py-2 rounded-xl text-sm font-semibold">Internet</button>
             <button id="tabIA" onclick="setFuente('ia')" class="py-2 rounded-xl text-sm font-semibold">IA</button>
-            <button id="tabCur" onclick="setFuente('curadas')" class="py-2 rounded-xl text-sm font-semibold">Curadas</button>
+            <button id="tabCur" onclick="setFuente('curadas')" class="py-2 rounded-xl text-sm font-semibold">Clásicas</button>
           </div>
         </div>
 
@@ -483,7 +483,7 @@ async function generar(otras=false){
     try { localStorage.setItem('ultimo_menu_ids', JSON.stringify(data.menu.map(m=>m.id))); } catch(_){}
     pintarMenu(data); pintarCompras(data.lista_compras); pintarInspo(data.inspiracion_internet); actualizarWA();
     document.getElementById('saveBtn').disabled = false;
-    document.getElementById('resumen').textContent = `${data.menu.map(m=>m.dia).join(' · ')} — base: ${data.ingredientes_recibidos.join(', ')}${data.fuente_usada?' — fuente: '+data.fuente_usada:''}`;
+    document.getElementById('resumen').textContent = `${data.menu.map(m=>m.dia).join(' · ')} — base: ${data.ingredientes_recibidos.join(', ')}${data.fuente_usada?' — fuente: '+(data.fuente_usada==='curadas'?'clásicas':data.fuente_usada):''}`;
   } catch(err){
     console.error(err);
     aviso('No pude contactar la API. Si estás en local, corre:  uvicorn api.index:app --reload --port 8000.');
@@ -496,7 +496,7 @@ function pintarMenu(data){
     const web = m.origen === 'internet';
     const gen = m.origen === 'ia';
     const badge = gen ? `<span class="inline-flex items-center gap-1 text-brand-700 font-semibold">${ic('spark','w-3.5 h-3.5')} IA</span>`
-      : `<span class="inline-flex items-center gap-1 ${web?'text-brand-700':'text-pine-900'} font-semibold">${ic(web?'globe':'leaf','w-3.5 h-3.5')} ${web?'Internet':'Curada'}</span>`;
+      : `<span class="inline-flex items-center gap-1 ${web?'text-brand-700':'text-pine-900'} font-semibold">${ic(web?'globe':'leaf','w-3.5 h-3.5')} ${web?'Internet':'Clásica'}</span>`;
     const meta = [
       m.tiempo && m.tiempo !== '—' ? `<span class="inline-flex items-center gap-1 text-slate-500">${ic('clock','w-3.5 h-3.5')} ${m.tiempo}</span>` : '',
       m.calorias && m.calorias !== '—' ? `<span class="inline-flex items-center gap-1 text-slate-500">${ic('flame','w-3.5 h-3.5')} ${m.calorias}</span>` : '',
