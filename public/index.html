@@ -37,7 +37,9 @@ tailwind.config = { theme: { extend: {
   .globo { transition:all .15s ease; }
   .globo-on { background:#0E3B2C !important; color:#fff !important; border-color:#0E3B2C !important; box-shadow:0 8px 18px -8px rgba(14,59,44,.5); }
   .chip-active { background:#0E3B2C !important; color:#fff !important; border-color:#0E3B2C !important; }
-  svg { flex-shrink:0; }
+  html, body { overflow-x: clip; max-width: 100%; }
+  img, svg, video { max-width: 100%; }
+  #chips, #resumen { overflow-wrap: anywhere; }
 </style>
 </head>
 <body class="text-slate-800 overflow-x-hidden">
@@ -72,7 +74,7 @@ tailwind.config = { theme: { extend: {
         <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>
         Plan semanal · con voz · con internet</span>
       <h1 class="font-display font-extrabold text-3xl sm:text-4xl md:text-5xl leading-tight mt-4 text-pine-950">Carga tus ingredientes.<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-700 to-brand-500">Recibe tu semana saludable.</span></h1>
-      <p class="mt-3 text-slate-600 max-w-xl">Escribe o <b>dicta por voz</b> lo que tienes. La app genera menús ricos y saludables, suma lo que falte y te da la <b>lista de compras</b>. Puedes <b>guardar menús</b> y asignarlos a cualquier día.</p>
+      <p class="mt-3 text-slate-600 max-w-xl">Escribe o dicta lo que tienes y recibe tu semana.</p>
 
       <!-- INGREDIENTES -->
       <div class="mt-6 bg-white rounded-3xl p-5 shadow-xl shadow-pine-900/5 border border-line">
@@ -102,13 +104,12 @@ tailwind.config = { theme: { extend: {
           <div class="flex items-center justify-between">
             <label class="font-display font-bold text-sm text-pine-950">2 · Elige tus días <span id="diasCount" class="ml-1 text-xs text-white bg-brand-600 rounded-full px-2 py-0.5">7 días</span></label>
           </div>
-          <p class="text-xs text-slate-500 mt-1">Toca para seleccionar o quitar días.</p>
           <div id="diasBubbles" class="flex flex-wrap gap-2 mt-3"></div>
         </div>
 
         <!-- PREFS -->
         <div class="mt-4">
-          <label class="font-display font-bold text-sm text-pine-950">3 · Preferencias <span class="font-normal text-slate-400">(opcional)</span></label>
+          <label class="font-display font-bold text-sm text-pine-950">3 · Preferencias</label>
           <div id="prefs" class="flex flex-wrap gap-2 mt-2">
             <button data-p="vegetariano" class="pref text-xs px-3 py-1.5 rounded-full border border-line bg-white">Vegetariano</button>
             <button data-p="vegano" class="pref text-xs px-3 py-1.5 rounded-full border border-line bg-white">Vegano</button>
@@ -121,43 +122,27 @@ tailwind.config = { theme: { extend: {
 
         <!-- ORIGEN -->
         <div class="mt-4">
-          <label class="font-display font-bold text-sm text-pine-950">4 · Origen de las recetas</label>
+          <label class="font-display font-bold text-sm text-pine-950">4 · Origen</label>
           <div class="grid grid-cols-3 gap-1 mt-2 bg-mist rounded-2xl p-1">
             <button id="tabAr" onclick="setFuente('argentina')" class="py-2 rounded-xl text-sm font-semibold">Argentina</button>
             <button id="tabWeb" onclick="setFuente('internet')" class="py-2 rounded-xl text-sm font-semibold">Internet</button>
             <button id="tabCur" onclick="setFuente('curadas')" class="py-2 rounded-xl text-sm font-semibold">Curadas</button>
           </div>
-          <p class="text-xs text-slate-500 mt-1">Argentina: recetas de sitios de acá. Internet: recetas del mundo (traducidas). Curadas: selección saludable en español.</p>
+          <p class="text-xs text-slate-500 mt-1">Argentina: de acá. Internet: del mundo. Curadas: en español.</p>
         </div>
 
         <button id="genBtn" onclick="generar()" class="mt-5 w-full py-3.5 sm:py-4 rounded-2xl font-display font-bold text-white text-base sm:text-lg bg-gradient-to-r from-pine-900 to-brand-600 shadow-lg shadow-pine-900/25 hover:opacity-95 active:scale-[.99] inline-flex items-center justify-center gap-2">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>
           Generar mi semana saludable</button>
-        <p class="text-[11px] text-slate-400 mt-2 text-center">Tus ingredientes son la base, no el límite: sumamos lo necesario para que sea completo.</p>
       </div>
     </div>
 
     <!-- PANEL LATERAL -->
     <div class="space-y-4">
-      <div class="bg-pine-950 text-white rounded-3xl p-5 shadow-xl">
-        <p class="font-display font-bold inline-flex items-center gap-2">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="17" cy="20" r="1.5"/><path d="M3 4h2l2.5 11h10L21 8H7"/></svg>
-          Lista de compras automática</p>
-        <p class="text-sm text-white/70 mt-1">Cada menú genera su lista agregada. Márcala mientras compras.</p>
-        <div id="listaPreview" class="mt-3 text-sm text-white/70">Aún sin menú… genera tu semana.</div>
-      </div>
-      <div class="bg-white rounded-3xl p-5 border border-line shadow">
-        <p class="font-display font-bold text-pine-950 inline-flex items-center gap-2">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
-          Mi planner</p>
-        <p class="text-xs text-slate-500 mt-1">Toca un día para escribir tu menú fijo, o asígnalo desde una receta generada.</p>
-        <div id="planner" class="mt-3 space-y-2"></div>
-      </div>
       <div class="bg-white rounded-3xl p-5 border border-line shadow">
         <p class="font-display font-bold text-pine-950 inline-flex items-center gap-2">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.7 3.8 9S14.5 18.4 12 21c-2.5-2.6-3.8-5.7-3.8-9S9.5 5.6 12 3z"/></svg>
-          Inspiración real de internet</p>
-        <p class="text-xs text-slate-500 mt-1">Recetas que usan tus ingredientes.</p>
+          Inspiración</p>
         <div id="inspo" class="mt-3 grid grid-cols-2 gap-2 text-sm"><span class="text-slate-400 text-xs">Aparecerá tras generar…</span></div>
       </div>
     </div>
@@ -177,15 +162,12 @@ tailwind.config = { theme: { extend: {
       <button id="saveBtn" onclick="guardarMenu()" disabled class="flex-1 sm:flex-none justify-center inline-flex items-center gap-1.5 text-sm px-4 py-2 rounded-xl bg-pine-950 text-white disabled:opacity-40">
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
         Guardar menú</button>
-      <button onclick="copiarCompras()" class="flex-1 sm:flex-none justify-center inline-flex items-center gap-1.5 text-sm px-4 py-2 rounded-xl border border-line bg-white">
-        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
-        Copiar compras</button>
     </div>
   </div>
   <div id="grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4"></div>
 
-  <h2 class="font-display font-extrabold text-2xl mt-10 text-pine-950">Lista de compras total</h2>
-  <div id="compras" class="mt-3 bg-white rounded-3xl border border-line p-5 grid sm:grid-cols-2 gap-2"></div>
+  <h2 class="font-display font-extrabold text-2xl mt-10 text-pine-950">Mi planner</h2>
+  <div id="planner" class="mt-3 space-y-2 bg-white rounded-3xl border border-line p-4 sm:p-5"></div>
 
   <div class="mt-6 bg-white rounded-3xl border border-line p-5">
     <div class="flex items-center gap-2 flex-wrap">
@@ -196,12 +178,10 @@ tailwind.config = { theme: { extend: {
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
         Copiar texto</button>
     </div>
-    <p class="text-xs text-slate-500 mt-1">Copia tu planner (solo los títulos de cada día) listo para pegar en WhatsApp.</p>
-    <textarea id="waText" rows="8" readonly placeholder="Aquí aparecerá tu planner cuando escribas o asignes menús a los días…" class="mt-3 w-full rounded-2xl border border-line p-3 text-sm bg-mist focus:outline-none focus:ring-2 focus:ring-brand-500"></textarea>
+    <textarea id="waText" rows="8" readonly placeholder="Tu planner aparecerá aquí…" class="mt-3 w-full rounded-2xl border border-line p-3 text-sm bg-mist focus:outline-none focus:ring-2 focus:ring-brand-500"></textarea>
   </div>
 
   <h2 id="misMenus" class="font-display font-extrabold text-2xl mt-10 text-pine-950">Menús guardados</h2>
-  <p class="text-sm text-slate-500">Ingresa con tu cuenta para guardarlos en la nube y verlos en cualquier dispositivo. Sin cuenta, se guardan solo en este navegador.</p>
   <div id="savedGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4"></div>
 </main>
 
@@ -444,7 +424,7 @@ async function generar(otras=false){
     const data = await r.json();
     menuActual = data;
     try { localStorage.setItem('ultimo_menu_ids', JSON.stringify(data.menu.map(m=>m.id))); } catch(_){}
-    pintarMenu(data); pintarCompras(data.lista_compras); pintarInspo(data.inspiracion_internet); actualizarWA();
+    pintarMenu(data); pintarInspo(data.inspiracion_internet); actualizarWA();
     document.getElementById('saveBtn').disabled = false;
     document.getElementById('resumen').textContent = `${data.menu.map(m=>m.dia).join(' · ')} — base: ${data.ingredientes_recibidos.join(', ')}${data.fuente_usada?' — fuente: '+data.fuente_usada:''}`;
   } catch(err){
@@ -520,16 +500,6 @@ function cambiarDia(i){
   const otros = menuActual.menu.filter((_,j)=>j!==i);
   const alt = otros[Math.floor(Math.random()*otros.length)];
   if (alt) { menuActual.menu[i] = {...alt, dia: menuActual.menu[i].dia, dia_num: menuActual.menu[i].dia_num}; pintarMenu(menuActual); actualizarWA(); verDetalle(i); }
-}
-
-// ---------------- compras
-function pintarCompras(lista){
-  document.getElementById('compras').innerHTML = lista.map(x=>`<label class="flex gap-2 items-start text-sm bg-mist border border-line rounded-xl px-3 py-2 cursor-pointer"><input type="checkbox" class="accent-[#1C7F52] mt-1"/> <span>${x}</span></label>`).join('');
-  document.getElementById('listaPreview').innerHTML = `<ul class="list-disc ml-4 space-y-0.5">${lista.slice(0,6).map(x=>`<li>${x}</li>`).join('')}${lista.length>6?`<li>…y ${lista.length-6} más</li>`:''}</ul>`;
-}
-function copiarCompras(){
-  if(!menuActual) return aviso('Primero genera un menú.');
-  copiarTexto('Lista de compras\n' + menuActual.lista_compras.map(x=>'- '+x).join('\n'), 'Lista copiada al portapapeles.');
 }
 
 // ---------------- exportar WhatsApp (desde el planner: solo títulos)
@@ -668,9 +638,9 @@ async function refrescarAuth(){
   const s = await sesion();
   if(s){
     const email = s.user.email || '';
-    area.innerHTML = `<span class="inline-flex items-center gap-2 text-sm pl-1 pr-2 py-1 rounded-xl border border-line bg-white">
+    area.innerHTML = `<span class="inline-flex items-center gap-2 text-sm pl-1 pr-2 py-1 rounded-xl border border-line bg-white min-w-0">
       <span class="w-7 h-7 rounded-lg bg-pine-950 text-white grid place-items-center text-xs font-bold">${email.slice(0,1).toUpperCase()}</span>
-      <span class="hidden md:inline max-w-[150px] truncate text-slate-600">${email}</span>
+      <span class="hidden md:inline max-w-[120px] truncate text-slate-600">${email}</span>
       <button onclick="cerrarSesion()" class="text-xs font-semibold text-slate-500 hover:text-pine-950">Salir</button></span>`;
   } else {
     area.innerHTML = `<button onclick="abrirAuth()" class="inline-flex items-center gap-1.5 text-sm px-3 py-2 rounded-xl bg-brand-600 text-white font-semibold">
@@ -797,7 +767,7 @@ async function abrirGuardado(id){
   const m = window._saved[String(id)];
   if(!m) return;
   menuActual = { dias: m.dias, ingredientes_recibidos: m.base||[], menu: m.menu, lista_compras: m.compras||[], inspiracion_internet: [] };
-  pintarMenu(menuActual); pintarCompras(menuActual.lista_compras); actualizarWA();
+  pintarMenu(menuActual); actualizarWA();
   document.getElementById('saveBtn').disabled = false;
   window.scrollTo({top: document.getElementById('grid').offsetTop-80, behavior:'smooth'});
   aviso(`Menú "${m.titulo}" cargado. Puedes asignar días al planner o cambiar recetas.`);
