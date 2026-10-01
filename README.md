@@ -67,7 +67,7 @@ vercel --prod
 ## Funciones
 - Dictado por voz continuo (Web Speech API, es-ES) + carga escrita + chips rápidos.
 - Globos de días seleccionables (1–7) + preferencias (vegetariano/vegano/sin gluten/rápido/económico/proteína).
-- 24 recetas saludables curadas: tus ingredientes son la base, no el límite.
+- 40+ recetas saludables curadas (mexicana, italiana, oriental, libanesa…): tus ingredientes son la base, no el límite. Cada generación varía y el botón Otras ideas evita repetir.
 - Búsqueda internet real: TheMealDB (sin key) + enlaces Google/YouTube por receta.
 - Vista por día: título → detalle (ingredientes a comprar, pasos, tip).
 - Lista de compras agregada + copiar + exportar a WhatsApp.

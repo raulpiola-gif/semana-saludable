@@ -158,6 +158,9 @@ tailwind.config = { theme: { extend: {
     <h2 class="font-display font-extrabold text-2xl text-pine-950">Tu menú</h2>
     <span id="resumen" class="text-sm text-slate-500"></span>
     <div class="ml-auto flex gap-2">
+      <button onclick="generar(true)" class="inline-flex items-center gap-1.5 text-sm px-4 py-2 rounded-xl border border-line bg-white font-semibold">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v6h6M20 20v-6h-6"/><path d="M20 9A8 8 0 0 0 6.3 5.3L4 7M4 15a8 8 0 0 0 13.7 3.7L20 17"/></svg>
+        Otras ideas</button>
       <button id="saveBtn" onclick="guardarMenu()" disabled class="inline-flex items-center gap-1.5 text-sm px-4 py-2 rounded-xl bg-pine-950 text-white disabled:opacity-40">
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
         Guardar menú</button>
@@ -362,26 +365,31 @@ document.querySelectorAll('.pref').forEach(b=>b.onclick=()=>b.classList.toggle('
 function getPrefs(){ return [...document.querySelectorAll('.pref.chip-active')].map(b=>b.dataset.p); }
 
 // ---------------- generar
-async function generar(){
+async function generar(otras=false){
   if (!ingredientes.length) { aviso('Agrega al menos 1 ingrediente (escríbelo o díctalo con el micrófono).'); return; }
   if (!diasSel.length) { aviso('Selecciona al menos 1 día.'); return; }
   const btn = document.getElementById('genBtn');
+  const orig = btn.innerHTML;
   btn.disabled = true; btn.innerHTML = 'Buscando las mejores recetas en internet…';
   try {
+    let excluir = [];
+    try { excluir = JSON.parse(localStorage.getItem('ultimo_menu_ids')||'[]'); } catch(_){}
+    if(otras && menuActual) excluir = [...new Set([...excluir, ...menuActual.menu.map(m=>m.id)])];
     const r = await fetch(API + '/api/generate', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ ingredientes, dias: diasSel.length, dias_nombres: diasSel, preferencias: getPrefs() })
+      body: JSON.stringify({ ingredientes, dias: diasSel.length, dias_nombres: diasSel, preferencias: getPrefs(), excluir })
     });
     if (!r.ok) throw new Error('API '+r.status);
     const data = await r.json();
     menuActual = data;
+    try { localStorage.setItem('ultimo_menu_ids', JSON.stringify(data.menu.map(m=>m.id))); } catch(_){}
     pintarMenu(data); pintarCompras(data.lista_compras); pintarInspo(data.inspiracion_internet); actualizarWA();
     document.getElementById('saveBtn').disabled = false;
     document.getElementById('resumen').textContent = `${data.menu.map(m=>m.dia).join(' · ')} — base: ${data.ingredientes_recibidos.join(', ')}`;
   } catch(err){
     console.error(err);
     aviso('No pude contactar la API. Si estás en local, corre:  uvicorn api.index:app --reload --port 8000.');
-  } finally { btn.disabled=false; btn.innerHTML = 'Generar mi semana saludable'; }
+  } finally { btn.disabled=false; btn.innerHTML = orig; }
 }
 function aviso(t){ const e=document.getElementById('estado'); e.classList.remove('hidden'); e.textContent=t; setTimeout(()=>e.classList.add('hidden'),5000); }
 

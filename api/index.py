@@ -295,6 +295,204 @@ RECETAS = [
         "pasos": ["Saltear pollo.", "Sumar brócoli + salsa (soja+miel+ajo).", "Servir sobre arroz."],
         "tip": "Espesa la salsa con 1 cdta maicena.",
     },
+    {
+        "id": "burrito-bowl",
+        "titulo": "Burrito bowl mexicano con pollo",
+        "descripcion": "Todo el sabor del burrito, sin tortilla y en bowl.",
+        "tiempo": "30 min", "calorias": "530 kcal", "dificultad": "Fácil",
+        "tags": ["alto-proteina", "sin-gluten"],
+        "ingredientes_base": ["pollo", "arroz", "porotos", "frijoles", "tomate", "palta", "aguacate", "maiz", "choclo", "limon"],
+        "ingredientes_detalle": ["400g pollo en tiras", "2 tazas arroz integral", "1 1/2 taza porotos cocidos", "1 taza tomate en cubos", "1 palta", "1 taza choclo", "Lima, comino, pimentón"],
+        "pasos": ["Condimentar el pollo con comino y pimentón, grillar.", "Calentar porotos y choclo.", "Armar bowls con arroz y todo encima, terminar con lima."],
+        "tip": "El yogur natural reemplaza la crema ácida.",
+    },
+    {
+        "id": "pasta-pesto-espinaca",
+        "titulo": "Pasta con pesto de espinaca y nuez",
+        "descripcion": "Pesto verde sin albahaca: barato y rendidor.",
+        "tiempo": "20 min", "calorias": "510 kcal", "dificultad": "Fácil",
+        "tags": ["vegetariano", "rapido"],
+        "ingredientes_base": ["pasta", "fideos", "espinaca", "nuez", "ajo", "queso", "oliva"],
+        "ingredientes_detalle": ["250g pasta integral", "3 tazas espinaca", "1/2 taza nueces", "1 diente ajo", "40g queso rallado", "Aceite de oliva, sal"],
+        "pasos": ["Hervir la pasta.", "Licuar espinaca, nueces, ajo, queso y oliva.", "Mezclar con la pasta y un poco de agua de cocción."],
+        "tip": "Tuesta las nueces 3 min para más sabor.",
+    },
+    {
+        "id": "carne-brocoli-oriental",
+        "titulo": "Salteado oriental de carne con brócoli",
+        "descripcion": "Estilo chifa, listo en una sartén.",
+        "tiempo": "25 min", "calorias": "490 kcal", "dificultad": "Fácil",
+        "tags": ["alto-proteina", "una-sarten"],
+        "ingredientes_base": ["carne", "brocoli", "zanahoria", "arroz", "soja", "ajo"],
+        "ingredientes_detalle": ["500g carne en tiras finas", "1 brócoli", "2 zanahorias", "2 tazas arroz integral cocido", "3 cda soja baja en sodio", "Ajo, jengibre"],
+        "pasos": ["Sellar la carne a fuego fuerte y reservar.", "Saltear brócoli y zanahoria 4 min.", "Volver la carne con soja, ajo y jengibre. Servir sobre arroz."],
+        "tip": "Corta la carne bien fina y contra la fibra.",
+    },
+    {
+        "id": "cuscus-verduras",
+        "titulo": "Cuscús con verduras asadas y garbanzos",
+        "descripcion": "Dulce-salado con comino y pasas opcional.",
+        "tiempo": "30 min", "calorias": "450 kcal", "dificultad": "Fácil",
+        "tags": ["vegano", "vegetariano"],
+        "ingredientes_base": ["cuscus", "garbanzos", "zapallo", "calabaza", "pimiento", "morrón", "cebolla"],
+        "ingredientes_detalle": ["1 1/2 taza cuscús", "1 1/2 taza garbanzos cocidos", "2 tazas zapallo en cubos", "1 morrón", "1 cebolla", "Comino, pimentón, oliva"],
+        "pasos": ["Asar verduras con especias 25 min a 200°C.", "Hidratar el cuscús con agua hirviendo 5 min.", "Mezclar todo con garbanzos y oliva."],
+        "tip": "Agrega pasas de uva y menta para versión marroquí.",
+    },
+    {
+        "id": "tortilla-papa-horno",
+        "titulo": "Tortilla de papas al horno sin fritura",
+        "descripcion": "La clásica, liviana y alta.",
+        "tiempo": "50 min", "calorias": "420 kcal", "dificultad": "Media",
+        "tags": ["vegetariano", "sin-gluten"],
+        "ingredientes_base": ["papa", "patata", "huevo", "cebolla"],
+        "ingredientes_detalle": ["4 papas en rodajas finas", "6 huevos", "1 cebolla", "2 cda aceite de oliva", "Sal"],
+        "pasos": ["Mezclar papas y cebolla con oliva y sal, hornear 25 min.", "Batir huevos y unir con las papas.", "Volcar en sartén apta y hornear 20 min más."],
+        "tip": "Deja reposar 10 min antes de cortar.",
+    },
+    {
+        "id": "pollo-limon-romero",
+        "titulo": "Pollo al limón con papas al romero",
+        "descripcion": "Horno y listo: marinado cítrico.",
+        "tiempo": "40 min", "calorias": "520 kcal", "dificultad": "Fácil",
+        "tags": ["alto-proteina", "una-bandeja"],
+        "ingredientes_base": ["pollo", "papa", "patata", "limon", "ajo"],
+        "ingredientes_detalle": ["4 presas de pollo", "4 papas en cuñas", "2 limones", "3 dientes ajo", "Romero, oliva, sal, pimienta"],
+        "pasos": ["Marinar pollo 15 min en limón, ajo y romero.", "Hornear todo junto 30 min a 200°C.", "Dorar 5 min más si hace falta."],
+        "tip": "Usa presas con hueso: quedan más jugosas.",
+    },
+    {
+        "id": "cesar-saludable",
+        "titulo": "Ensalada César liviana con pollo",
+        "descripcion": "Aderezo de yogur: cremoso sin mayonesa.",
+        "tiempo": "25 min", "calorias": "430 kcal", "dificultad": "Fácil",
+        "tags": ["alto-proteina", "fresco"],
+        "ingredientes_base": ["pollo", "lechuga", "yogur", "queso", "ajo", "limon"],
+        "ingredientes_detalle": ["2 pechugas grilladas", "1 lechuga romana", "1 yogur natural", "30g queso rallado", "1 diente ajo", "Limón, mostaza, sal"],
+        "pasos": ["Grillar el pollo y cortarlo.", "Licuar yogur, ajo, limón y mostaza.", "Armar con lechuga, pollo, queso y aderezo."],
+        "tip": "Crutones integrales caseros al horno.",
+    },
+    {
+        "id": "guiso-lentejas",
+        "titulo": "Guiso de lentejas con verduras",
+        "descripcion": "Cuchara, hierro y comfort food.",
+        "tiempo": "45 min", "calorias": "480 kcal", "dificultad": "Fácil",
+        "tags": ["vegano", "vegetariano", "economico", "una-olla"],
+        "ingredientes_base": ["lentejas", "zanahoria", "papa", "patata", "cebolla", "tomate"],
+        "ingredientes_detalle": ["2 tazas lentejas", "2 zanahorias", "2 papas", "1 cebolla", "1 taza tomate triturado", "Laurel, pimentón, comino"],
+        "pasos": ["Saltear cebolla y condimentos.", "Sumar verduras, lentejas y agua.", "Cocinar 30 min hasta tierno."],
+        "tip": "Más rico al día siguiente.",
+    },
+    {
+        "id": "pescado-pure-coliflor",
+        "titulo": "Pescado a la plancha con puré de coliflor",
+        "descripcion": "Puré cremoso bajo en carbohidratos.",
+        "tiempo": "25 min", "calorias": "390 kcal", "dificultad": "Fácil",
+        "tags": ["pescado", "low-carb", "liviano"],
+        "ingredientes_base": ["pescado", "merluza", "coliflor", "limon", "ajo"],
+        "ingredientes_detalle": ["4 filetes de pescado", "1 coliflor", "2 dientes ajo", "1 limón", "Oliva, sal, pimienta"],
+        "pasos": ["Hervir coliflor 12 min y pisar con oliva y ajo.", "Sellar el pescado 3 min por lado.", "Servir con limón."],
+        "tip": "Nuez moscada al puré, queda increíble.",
+    },
+    {
+        "id": "wrap-atun-palta",
+        "titulo": "Wrap integral de atún, palta y verduras",
+        "descripcion": "Sin cocción, ideal para llevar.",
+        "tiempo": "15 min", "calorias": "450 kcal", "dificultad": "Fácil",
+        "tags": ["pescado", "rapido", "fresco"],
+        "ingredientes_base": ["atun", "palta", "aguacate", "tortilla", "lechuga", "tomate"],
+        "ingredientes_detalle": ["2 latas atún al agua", "1 palta", "4 tortillas integrales", "Hojas de lechuga", "1 tomate", "Limón, sal"],
+        "pasos": ["Pisar palta con limón y sal.", "Mezclar con atún escurrido.", "Rellenar tortillas con lechuga y tomate."],
+        "tip": "Tuesta el wrap 1 min por lado para sellarlo.",
+    },
+    {
+        "id": "sopa-pollo-verduras",
+        "titulo": "Sopa de pollo con verduras y fideos integrales",
+        "descripcion": "Caldo casero que abraza.",
+        "tiempo": "40 min", "calorias": "350 kcal", "dificultad": "Fácil",
+        "tags": ["alto-proteina", "liviano", "una-olla"],
+        "ingredientes_base": ["pollo", "zanahoria", "cebolla", "papa", "patata", "pasta", "fideos"],
+        "ingredientes_detalle": ["2 pechugas o 4 muslos sin piel", "2 zanahorias", "1 cebolla", "2 papas", "100g fideos integrales", "Apio, laurel, sal"],
+        "pasos": ["Hervir pollo con verduras 25 min.", "Desmenuzar el pollo.", "Sumar fideos y cocinar 8 min."],
+        "tip": "Congela en porciones para la semana.",
+    },
+    {
+        "id": "albondigas-pollo",
+        "titulo": "Albóndigas de pollo en salsa de tomate con arroz",
+        "descripcion": "Tiernas al horno, salsa casera.",
+        "tiempo": "40 min", "calorias": "530 kcal", "dificultad": "Media",
+        "tags": ["alto-proteina"],
+        "ingredientes_base": ["pollo", "tomate", "arroz", "cebolla", "ajo"],
+        "ingredientes_detalle": ["500g pollo picado", "2 tazas tomate triturado", "2 tazas arroz integral cocido", "1/2 cebolla rallada", "Ajo, orégano, sal"],
+        "pasos": ["Mezclar pollo con cebolla y formar bolitas.", "Hornear 15 min a 200°C.", "Terminar 10 min en la salsa de tomate."],
+        "tip": "Manos mojadas = albóndigas perfectas.",
+    },
+    {
+        "id": "ensalada-garbanzos-griega",
+        "titulo": "Ensalada griega de garbanzos",
+        "descripcion": "Sin cocción, lista en 15 minutos.",
+        "tiempo": "15 min", "calorias": "400 kcal", "dificultad": "Fácil",
+        "tags": ["vegetariano", "rapido", "fresco", "meal-prep"],
+        "ingredientes_base": ["garbanzos", "tomate", "pepino", "cebolla", "queso", "oliva"],
+        "ingredientes_detalle": ["2 tazas garbanzos cocidos", "1 taza tomate cherry", "1 pepino", "1/4 cebolla morada", "60g queso feta o fresco", "Olivas, orégano, oliva, limón"],
+        "pasos": ["Picar todo en cubos.", "Mezclar con garbanzos.", "Aliñar con oliva, limón y orégano."],
+        "tip": "Mejor fría de heladera.",
+    },
+    {
+        "id": "revuelto-tofu",
+        "titulo": "Revuelto de tofu con cúrcuma y verduras",
+        "descripcion": "El 'huevo revuelto' vegano.",
+        "tiempo": "15 min", "calorias": "350 kcal", "dificultad": "Fácil",
+        "tags": ["vegano", "vegetariano", "rapido"],
+        "ingredientes_base": ["tofu", "espinaca", "tomate", "cebolla", "champignon"],
+        "ingredientes_detalle": ["400g tofu firme desmenuzado", "2 puñados espinaca", "1 tomate", "1/2 cebolla", "4 champiñones", "Cúrcuma, comino, sal negra si hay"],
+        "pasos": ["Saltear cebolla y champiñones.", "Sumar tofu con cúrcuma 5 min.", "Agregar tomate y espinaca al final."],
+        "tip": "La sal negra le da gusto a huevo.",
+    },
+    {
+        "id": "lasana-zucchini",
+        "titulo": "Lasaña de zucchini sin pasta",
+        "descripcion": "Capas y queso, versión low-carb.",
+        "tiempo": "45 min", "calorias": "420 kcal", "dificultad": "Media",
+        "tags": ["vegetariano", "low-carb"],
+        "ingredientes_base": ["zucchini", "zapallito", "tomate", "queso", "cebolla"],
+        "ingredientes_detalle": ["3 zucchinis en láminas", "2 tazas salsa de tomate", "200g queso fresco", "50g queso rallado", "Albahaca, orégano"],
+        "pasos": ["Grillar láminas de zucchini.", "Armar capas con salsa y queso.", "Hornear 25 min a 190°C y gratinar."],
+        "tip": "Sala el zucchini 10 min y seca: no se aguachenta.",
+    },
+    {
+        "id": "pollo-miel-mostaza",
+        "titulo": "Pollo con miel y mostaza + ensalada verde",
+        "descripcion": "Glaseado dorado irresistible.",
+        "tiempo": "30 min", "calorias": "470 kcal", "dificultad": "Fácil",
+        "tags": ["alto-proteina"],
+        "ingredientes_base": ["pollo", "miel", "mostaza", "lechuga", "limon"],
+        "ingredientes_detalle": ["4 pechugas", "2 cda miel", "2 cda mostaza", "Ensalada verde", "Ajo, sal, pimienta"],
+        "pasos": ["Mezclar miel, mostaza y ajo.", "Pincelar el pollo y hornear 22 min.", "Servir con ensalada verde."],
+        "tip": "Pincela a mitad de cocción para más brillo.",
+    },
+    {
+        "id": "croquetas-arroz",
+        "titulo": "Croquetas de arroz y espinaca al horno",
+        "descripcion": "Reciclaje delicioso del arroz de ayer.",
+        "tiempo": "40 min", "calorias": "430 kcal", "dificultad": "Media",
+        "tags": ["vegetariano", "economico"],
+        "ingredientes_base": ["arroz", "espinaca", "huevo", "queso"],
+        "ingredientes_detalle": ["2 tazas arroz cocido", "2 tazas espinaca salteada", "2 huevos", "80g queso en cubos", "Pan rallado integral"],
+        "pasos": ["Mezclar arroz, espinaca y huevo.", "Formar bolitas con queso adentro.", "Rebozar y hornear 20 min."],
+        "tip": "Sirve con salsa de tomate caliente.",
+    },
+    {
+        "id": "tabule-quinoa",
+        "titulo": "Tabulé de quinoa con hierbas y tomate",
+        "descripcion": "Fresco estilo libanés, lleno de perejil.",
+        "tiempo": "20 min", "calorias": "380 kcal", "dificultad": "Fácil",
+        "tags": ["vegano", "vegetariano", "fresco", "sin-gluten"],
+        "ingredientes_base": ["quinoa", "tomate", "pepino", "limon", "cebolla"],
+        "ingredientes_detalle": ["1 taza quinoa cocida", "2 tomates", "1/2 pepino", "1 atado perejil", "Menta fresca, limón, oliva"],
+        "pasos": ["Picar hierbas y verduras bien chico.", "Mezclar con quinoa fría.", "Aliñar generoso con limón y oliva."],
+        "tip": "El secreto es mucho perejil y buen limón.",
+    },
 ]
 
 DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
@@ -413,6 +611,7 @@ class GenerateIn(BaseModel):
     dias: int = Field(default=7, ge=1, le=7)
     preferencias: List[str] = Field(default_factory=list)
     dias_nombres: Optional[List[str]] = None  # ej: ["Lunes","Miércoles"]
+    excluir: List[str] = Field(default_factory=list)  # ids de recetas a evitar (variedad)
 
 
 # ---------------------------------------------------------------- endpoints
@@ -452,7 +651,18 @@ def generate(body: GenerateIn):
     ing_norm = [normalizar(i) for i in ingredientes]
 
     candidatas = [r for r in RECETAS if cumple_preferencias(r, prefs)] or list(RECETAS)
-    rankeadas = sorted(candidatas, key=lambda r: score_receta(r, ing_norm), reverse=True)
+
+    # Variedad: evita recetas ya mostradas y agrega azar al ranking
+    # para que cada generación traiga opciones distintas y creativas.
+    excluidos = set(body.excluir or [])
+    pool_base = [r for r in candidatas if r["id"] not in excluidos]
+    if len(pool_base) < dias:
+        pool_base = list(candidatas)
+    rankeadas = sorted(
+        pool_base,
+        key=lambda r: score_receta(r, ing_norm) + random.uniform(0, 3.0),
+        reverse=True,
+    )
 
     # diversificar: no repetir proteína base dos días seguidos si hay variedad
     menu, usadas = [], set()
