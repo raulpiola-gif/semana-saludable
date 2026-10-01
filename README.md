@@ -64,6 +64,17 @@ vercel --prod
 - Frontend: `public/index.html` (CDN estático). Backend: `api/index.py` (función Python).
 - No requiere variables de entorno (Supabase se configura desde el botón ⚙️ en el navegador).
 
+## 6) Modo IA (opcional, recetas generativas)
+Sin clave, el tab IA usa el circuito normal con fallback. Para activar recetas 100% generadas:
+1. Crea una clave **gratis** en https://console.groq.com/keys.
+2. En Vercel: tu proyecto → **Settings → Environment Variables** → agrega:
+   - `OPENAI_API_KEY` = tu clave
+   - `OPENAI_BASE_URL` = `https://api.groq.com/openai/v1`
+   - `OPENAI_MODEL` = `llama-3.3-70b-versatile`
+3. **Redeploy** (Deployments → ⋯ → Redeploy) para que tome las variables.
+4. En local: `export OPENAI_API_KEY=...` antes de `uvicorn`.
+El tab IA muestra "sin clave" hasta configurarla. Sirve cualquier endpoint OpenAI-compatible.
+
 ## Funciones
 - Dictado por voz continuo (Web Speech API, es-ES) + carga escrita + chips rápidos.
 - Globos de días seleccionables (1–7) + preferencias (vegetariano/vegano/sin gluten/rápido/económico/proteína).

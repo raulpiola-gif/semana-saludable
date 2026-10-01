@@ -123,10 +123,22 @@ tailwind.config = { theme: { extend: {
         <!-- ORIGEN -->
         <div class="mt-4">
           <label class="font-display font-bold text-sm text-pine-950">4 · Origen</label>
-          <div class="grid grid-cols-3 gap-1 mt-2 bg-mist rounded-2xl p-1">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-1 mt-2 bg-mist rounded-2xl p-1">
             <button id="tabAr" onclick="setFuente('argentina')" class="py-2 rounded-xl text-sm font-semibold">Argentina</button>
             <button id="tabWeb" onclick="setFuente('internet')" class="py-2 rounded-xl text-sm font-semibold">Internet</button>
+            <button id="tabIA" onclick="setFuente('ia')" class="py-2 rounded-xl text-sm font-semibold">IA</button>
             <button id="tabCur" onclick="setFuente('curadas')" class="py-2 rounded-xl text-sm font-semibold">Curadas</button>
+          </div>
+        </div>
+
+        <!-- COMENSALES -->
+        <div class="mt-4">
+          <label class="font-display font-bold text-sm text-pine-950">5 · Comensales</label>
+          <div class="flex items-center gap-3 mt-2">
+            <button onclick="cambiarComensales(-1)" class="w-10 h-10 rounded-full border-2 border-line bg-white font-bold text-lg leading-none">−</button>
+            <span class="font-display font-bold text-lg text-pine-950 w-8 text-center"><span id="comVal">4</span></span>
+            <button onclick="cambiarComensales(1)" class="w-10 h-10 rounded-full border-2 border-line bg-white font-bold text-lg leading-none">+</button>
+            <span class="text-xs text-slate-500">Las cantidades se calculan solas.</span>
           </div>
         </div>
 
@@ -178,6 +190,17 @@ tailwind.config = { theme: { extend: {
         Copiar texto</button>
     </div>
     <textarea id="waText" rows="8" readonly placeholder="Tu planner aparecerá aquí…" class="mt-3 w-full rounded-2xl border border-line p-3 text-sm bg-mist focus:outline-none focus:ring-2 focus:ring-brand-500"></textarea>
+  </div>
+
+  <div class="mt-6 bg-white rounded-3xl border border-line p-4 sm:p-5">
+    <div class="flex items-center gap-2 flex-wrap">
+      <h2 class="font-display font-extrabold text-xl text-pine-950">Lista de compras</h2>
+      <span id="compFactor" class="text-xs text-slate-500"></span>
+      <button onclick="copiarCompras()" class="ml-auto inline-flex items-center gap-1.5 text-sm px-4 py-2 rounded-xl bg-brand-600 text-white font-semibold">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+        Copiar</button>
+    </div>
+    <div id="compras" class="mt-3 grid sm:grid-cols-2 gap-2"><p class="text-sm text-slate-400">Genera tu semana para verla aquí.</p></div>
   </div>
 
   <h2 id="misMenus" class="font-display font-extrabold text-2xl mt-10 text-pine-950">Menús guardados</h2>
@@ -266,6 +289,7 @@ const P = {
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   flame: '<path d="M12 22c4 0 7-2.7 7-7 0-3-2-5.5-3.5-7C14 6.5 13 5 13 2c-3 2-5 4.5-5.5 7C6 10 5 11.5 5 14c0 4.3 3 8 7 8z"/>',
   globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.7 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.7-3.8-9S9.5 5.6 12 3z"/>',
+  spark: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>',
   leaf: '<path d="M5 21c0-9 5-14 14-15-1 9-6 14-14 15"/><path d="M5 21c3-5 7-9 11-11"/>',
   cal: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>',
   x: '<path d="M18 6L6 18M6 6l12 12"/>',
@@ -291,7 +315,19 @@ function setFuente(f){
   const off = 'py-2 rounded-xl text-sm font-semibold text-slate-500';
   document.getElementById('tabAr').className = (f==='argentina'?on:off);
   document.getElementById('tabWeb').className = (f==='internet'?on:off);
+  document.getElementById('tabIA').className = (f==='ia'?on:off);
   document.getElementById('tabCur').className = (f==='curadas'?on:off);
+}
+async function marcarIA(){
+  try {
+    const r = await fetch(API + '/api/health');
+    const h = await r.json();
+    if(!h.ia){
+      const t = document.getElementById('tabIA');
+      t.innerHTML = 'IA · sin clave';
+      t.title = 'Para activar la IA agrega una clave gratis (ver README sección IA)';
+    }
+  } catch(_){}
 }
 const API = location.hostname.includes('localhost') ? 'http://localhost:8000' : '';
 
@@ -358,15 +394,37 @@ function toggleMic(){
     micMsg('Habla pausado: cada pausa agrega un ingrediente. Pulsa "Detener" al terminar.');
   } catch(_) { micMsg('No se pudo iniciar el micrófono. Intenta de nuevo.'); }
 }
+// Vocabulario para separar lo dictado: si todo lo dicho son alimentos
+// conocidos, cada uno va a su chip ("pollo arroz tomate" → 3 chips).
+const CONOCIDOS = new Set(("pollo arroz huevo huevos leche queso tomate tomates cebolla ajo papa papas patata zanahoria zanahorias carne cerdo pescado atun salmon merluza camaron camarones tofu espinaca lechuga brocoli coliflor zapallo calabaza choclo maiz arveja arvejas poroto porotos frijoles lenteja lentejas garbanzo garbanzos palta aguacate limon lima pasta fideos pimiento morron pepino manzana banana mango miel harina avena manteca mantequilla yogur batata boniato berenjena zucchini zapallito repollo apio jengibre curry comino pimenton oregano perejil albahaca canela mostaza soja vinagre pan quinoa cuscus champignon hongos nuez nueces almendra mani coco chocolate vainilla naranja frutilla anana pera durazno uva sandia pavo cordero pato jamon salchicha chorizo panceta crema ricota mozzarella parmesano feta aceituna aceitunas oliva olivas menta romero tomillo laurel cilantro rucula aceite sal pimienta azucar agua caldo vino milanesa pure tortilla pizza empanada lechuga cebollas ajos quesos tomatitos choclos zapallitos champinones fideos altos fideos tirabuzon calabacin calabacines brocolis coliflores esparragos esparrago habas chaucha chauchas remolacha remolachas nabo rábano rabanito sandía melón melon kiwi frambuesa arandano duraznos pelon damasco cereza higo uvas pasas mani tostado almendras nuez moscada oregano fresco albahaca fresca perejil fresco cilantro fresco menta fresca romero fresco tomillo fresco laurel seco aji picante pimiento rojo pimiento verde cebolla morada cebolla blanca papa negra batata zanahoria rallada queso rallado queso crema queso untable leche condensada leche en polvo huevo duro clara yema panceta ahumada jamon cocido jamon crudo salame longaniza morcilla chinchulin riñon higado mondongo lengua osobuco asado vacio matambre entraña bife chorizo morcilla pollo trozado pata muslo pechuga alitas supremas pescado blanco atun natural caballa sardina anchoa mejillon calamar camaron langostino surimi kanikama tofu firme tofu blando leche de coco crema de leche dulce de leche cajeta membrillo batata queso mantecoso port salut roquefort azul parmesano rallado sardo provolone queso de maquina queso feteado fiambre jamon queso salame queso aceitunas negras aceitunas verdes pickles alcaparras hongos secos tomate seco tomate cherry tomate perita pure de tomate salsa de tomate extracto conserva choclo en lata arvejas en lata jardinera atun en lata caballa en lata sardinas anchoas aceite de oliva aceite de girasol aceite de maiz vinagre de alcohol vinagre de manzana aceto balsamico limon exprimido lima jugo naranja exprimida miel pura azucar comun azucar negra azucar impalpable edulcorante stevia sal fina sal gruesa sal marina pimienta negra pimienta blanca comino molido pimenton dulce pimenton ahumado aji molido oregano seco laurel en hojas tomillo seco romero seco provenzal chimichurri curry en polvo curcuma jengibre fresco ajo en polvo cebolla en polvo perejil deshidratado albahaca deshidratada menta seca canela en rama clavo nuez moscada pimienta de jamaica laurel curry mostaza dijon mostaza comun ketchup mayonesa salsa golf salsa barbacoa salsa de soja salsa inglesa tabasco picante").split(" "));
+const RELLENO = new Set(["de","con","y","e","en","la","el","los","las","lo","un","una","unos","unas","mi","mis","tu","tus","su","sus","tengo","tiene","tienen","quiero","quiere","hacer","cocinar","comprar","para","por","hoy","esta","este","esto","eso","esa","ese","muy","mas","poco","mucho","algo","hay","eh","ah","este","a","al","del","se","que","con"]);
+function normalizaVoz(w){ return w.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+function segmentarHablado(t){
+  const out = [];
+  t.split(/[,;]+/).forEach(seg=>{
+    const orig = seg.trim().split(/[\s\-]+/).filter(Boolean);
+    if(!orig.length) return;
+    const norm = orig.map(normalizaVoz);
+    const utiles = orig.filter((_,k)=>!RELLENO.has(norm[k]));
+    if(!utiles.length) return;
+    const normsUtiles = utiles.map(normalizaVoz);
+    if(utiles.length > 1 && normsUtiles.every(w=>CONOCIDOS.has(w))){
+      utiles.forEach(u=>{ const s = u.toLowerCase().trim(); if(s) out.push(s); });
+    } else {
+      const s = seg.trim().toLowerCase().replace(/\s+/g,' ');
+      if(s.length > 1) out.push(s);
+    }
+  });
+  return out;
+}
 function agregarHablado(t){
-  // Separa lo dicho en la pausa por comas o "y" (ej: "pollo, arroz" o "sal y pimienta")
   const antes = ingredientes.length;
-  t.split(/,|;|\s+y\s+/i).map(s=>s.trim().toLowerCase()).filter(s=>s.length>1).forEach(s=>{
-    if(!ingredientes.includes(s)) ingredientes.push(s);
+  segmentarHablado(t).forEach(s=>{
+    if(s && !ingredientes.includes(s)) ingredientes.push(s);
   });
   renderChips();
   const n = ingredientes.length - antes;
-  micMsg(n ? `Agregado: "${t}" · llevas ${ingredientes.length} ingredientes. Sigue hablando…` : `Ya tenía "${t}". Sigue hablando…`);
+  micMsg(n ? `Agregado (${n}): llevas ${ingredientes.length} ingredientes. Sigue hablando…` : `Ya los tenía. Sigue hablando…`);
 }
 function detenerMic(confirmar){
   escuchando = false;
@@ -423,7 +481,7 @@ async function generar(otras=false){
     const data = await r.json();
     menuActual = data;
     try { localStorage.setItem('ultimo_menu_ids', JSON.stringify(data.menu.map(m=>m.id))); } catch(_){}
-    pintarMenu(data); pintarInspo(data.inspiracion_internet); actualizarWA();
+    pintarMenu(data); pintarCompras(data.lista_compras); pintarInspo(data.inspiracion_internet); actualizarWA();
     document.getElementById('saveBtn').disabled = false;
     document.getElementById('resumen').textContent = `${data.menu.map(m=>m.dia).join(' · ')} — base: ${data.ingredientes_recibidos.join(', ')}${data.fuente_usada?' — fuente: '+data.fuente_usada:''}`;
   } catch(err){
@@ -436,10 +494,13 @@ function aviso(t){ const e=document.getElementById('estado'); e.classList.remove
 function pintarMenu(data){
   document.getElementById('grid').innerHTML = data.menu.map((m,i)=>{
     const web = m.origen === 'internet';
+    const gen = m.origen === 'ia';
+    const badge = gen ? `<span class="inline-flex items-center gap-1 text-brand-700 font-semibold">${ic('spark','w-3.5 h-3.5')} IA</span>`
+      : `<span class="inline-flex items-center gap-1 ${web?'text-brand-700':'text-pine-900'} font-semibold">${ic(web?'globe':'leaf','w-3.5 h-3.5')} ${web?'Internet':'Curada'}</span>`;
     const meta = [
       m.tiempo && m.tiempo !== '—' ? `<span class="inline-flex items-center gap-1 text-slate-500">${ic('clock','w-3.5 h-3.5')} ${m.tiempo}</span>` : '',
       m.calorias && m.calorias !== '—' ? `<span class="inline-flex items-center gap-1 text-slate-500">${ic('flame','w-3.5 h-3.5')} ${m.calorias}</span>` : '',
-      `<span class="inline-flex items-center gap-1 ${web?'text-brand-700':'text-pine-900'} font-semibold">${ic(web?'globe':'leaf','w-3.5 h-3.5')} ${web?'Internet':'Curada'}</span>`
+      badge
     ].join('');
     return `
     <article class="fade-in bg-white rounded-3xl border border-line overflow-hidden card-hover cursor-pointer" onclick="verDetalle(${i})">
@@ -480,7 +541,7 @@ function verDetalle(i){
       <button onclick="document.getElementById('modal').close()" class="ml-auto w-9 h-9 rounded-full bg-mist inline-flex items-center justify-center">${ic('x')}</button>
     </div>
     <h4 class="font-bold text-sm mt-4 text-pine-950">Ingredientes a comprar / usar</h4>
-    <ul class="mt-2 space-y-1.5">${m.ingredientes_detalle.map(x=>`<li class="text-sm bg-mist border border-line rounded-xl px-3 py-2 flex gap-2"><input type="checkbox" class="accent-[#1C7F52] mt-1" /><span>${x}</span></li>`).join('')}</ul>
+    <ul class="mt-2 space-y-1.5">${m.ingredientes_detalle.map(x=>{const t=escalarTexto(x, factor()); return `<li class="text-sm bg-mist border border-line rounded-xl px-3 py-2 flex gap-2"><input type="checkbox" class="accent-[#1C7F52] mt-1" /><span>${t}</span></li>`;}).join('')}</ul>
     <h4 class="font-bold text-sm mt-4 text-pine-950">Paso a paso</h4>
     <ol class="mt-2 space-y-2">${m.pasos.map((p,j)=>`<li class="text-sm flex gap-2"><span class="w-6 h-6 shrink-0 rounded-full bg-pine-950 text-white text-xs grid place-items-center">${j+1}</span><span>${p}</span></li>`).join('')}</ol>
     <p class="mt-3 text-sm bg-brand-100 border border-line rounded-2xl p-3"><b>Tip saludable:</b> ${m.tip_saludable}</p>
@@ -499,6 +560,59 @@ function cambiarDia(i){
   const otros = menuActual.menu.filter((_,j)=>j!==i);
   const alt = otros[Math.floor(Math.random()*otros.length)];
   if (alt) { menuActual.menu[i] = {...alt, dia: menuActual.menu[i].dia, dia_num: menuActual.menu[i].dia_num}; pintarMenu(menuActual); actualizarWA(); verDetalle(i); }
+}
+
+// ---------------- comensales + escalado de cantidades (base: 4 personas)
+let comensales = 4;
+const BASE_COMENSALES = 4;
+function factor(){ return comensales / BASE_COMENSALES; }
+function cambiarComensales(d){
+  comensales = Math.min(12, Math.max(1, comensales + d));
+  document.getElementById('comVal').textContent = comensales;
+  if(menuActual && menuActual.lista_compras) pintarCompras(menuActual.lista_compras);
+}
+function formatearCant(r){
+  const entero = Math.round(r);
+  if(Math.abs(r - entero) < 0.06) return String(entero);
+  const mitad = Math.round(r * 2) / 2;
+  if(Math.abs(r - mitad) < 0.06){
+    const e = Math.floor(mitad);
+    return e > 0 ? `${e} 1/2` : '1/2';
+  }
+  return String(Math.round(r * 10) / 10).replace('.', ',');
+}
+function escalarTexto(s, f){
+  if(!s || f === 1) return s;
+  return s.replace(/^(\d+(?:[.,]\d+)?(?:\s+\d+\/\d+)?|\d+\/\d+|una|un|media|medio)\b/i, (m)=>{
+    const v = m.toLowerCase();
+    let n;
+    if(v === 'una' || v === 'un') n = 1;
+    else if(v === 'media' || v === 'medio') n = 0.5;
+    else if(v.includes('/')){
+      n = 0;
+      v.split(/\s+/).forEach(x=>{
+        if(x.includes('/')){ const p = x.split('/'); n += (+p[0]) / (+p[1] || 1); }
+        else n += parseFloat(x.replace(',', '.')) || 0;
+      });
+    } else n = parseFloat(v.replace(',', '.'));
+    if(!(n > 0)) return m;
+    return formatearCant(n * f);
+  });
+}
+
+// ---------------- lista de compras (escalada por comensales)
+function pintarCompras(lista){
+  const f = factor();
+  document.getElementById('compFactor').textContent = `Cantidades para ${comensales} ${comensales===1?'persona':'personas'}`;
+  document.getElementById('compras').innerHTML = lista.map(x=>{
+    const t = escalarTexto(x, f);
+    return `<label class="flex gap-2 items-start text-sm bg-mist border border-line rounded-xl px-3 py-2 cursor-pointer"><input type="checkbox" class="accent-[#1C7F52] mt-1"/> <span>${t}</span></label>`;
+  }).join('');
+}
+function copiarCompras(){
+  if(!menuActual) return aviso('Primero genera un menú.');
+  const f = factor();
+  copiarTexto(`Compras (${comensales} personas)\n` + menuActual.lista_compras.map(x=>'- '+escalarTexto(x, f)).join('\n'), 'Lista copiada.');
 }
 
 // ---------------- exportar WhatsApp (desde el planner: solo títulos)
@@ -718,14 +832,14 @@ async function guardarMenu(){
     if(!s){ aviso('Ingresa con tu cuenta para guardar el menú en la nube.'); abrirAuth(); return; }
     const titulo = prompt('Nombre para guardar este menú:', `Menú ${menuActual.menu.length} días · ${new Date().toLocaleDateString()}`);
     if(!titulo) return;
-    const registro = { titulo, dias: menuActual.menu.length, base: menuActual.ingredientes_recibidos, menu: menuActual.menu, compras: menuActual.lista_compras, user_id: s.user.id };
+    const registro = { titulo, dias: menuActual.menu.length, base: menuActual.ingredientes_recibidos, menu: menuActual.menu, compras: menuActual.lista_compras, comensales: comensales, user_id: s.user.id };
     const { error } = await cliente.from('menus_guardados').insert(registro);
     if (error) { aviso('Supabase: '+error.message); }
     else aviso('Menú guardado en tu cuenta.');
   } else {
     const titulo = prompt('Aún no conectas Supabase: lo guardo en este navegador.\nNombre del menú:', `Menú ${menuActual.menu.length} días · ${new Date().toLocaleDateString()}`);
     if(!titulo) return;
-    saveLocal({ titulo, dias: menuActual.menu.length, base: menuActual.ingredientes_recibidos, menu: menuActual.menu, compras: menuActual.lista_compras });
+    saveLocal({ titulo, dias: menuActual.menu.length, base: menuActual.ingredientes_recibidos, menu: menuActual.menu, compras: menuActual.lista_compras, comensales: comensales });
     aviso('Menú guardado en este navegador.');
   }
   cargarGuardados();
@@ -766,7 +880,9 @@ async function abrirGuardado(id){
   const m = window._saved[String(id)];
   if(!m) return;
   menuActual = { dias: m.dias, ingredientes_recibidos: m.base||[], menu: m.menu, lista_compras: m.compras||[], inspiracion_internet: [] };
-  pintarMenu(menuActual); actualizarWA();
+  comensales = m.comensales || BASE_COMENSALES;
+  document.getElementById('comVal').textContent = comensales;
+  pintarMenu(menuActual); pintarCompras(menuActual.lista_compras); actualizarWA();
   document.getElementById('saveBtn').disabled = false;
   window.scrollTo({top: document.getElementById('grid').offsetTop-80, behavior:'smooth'});
   aviso(`Menú "${m.titulo}" cargado. Puedes asignar días al planner o cambiar recetas.`);
@@ -783,7 +899,7 @@ async function borrarGuardado(id){
 }
 
 // init
-renderChips(); renderDias(); setFuente('argentina'); renderPlanner(); wireAuth(); refrescarAuth(); cargarGuardados();
+renderChips(); renderDias(); setFuente('argentina'); marcarIA(); renderPlanner(); wireAuth(); refrescarAuth(); cargarGuardados();
 </script>
 </body>
 </html>

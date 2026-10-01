@@ -1273,6 +1273,94 @@ def menu_desde_hispano(ingredientes: List[str], dias: int, excluir: List[str]):
     return resultados[:dias]
 
 
+# ---------------------------------------------------------------- modo IA (recetas generativas)
+# Usa un LLM vía API OpenAI-compatible. Sin key no hay IA (fallback automático).
+# Clave GRATIS recomendada: Groq (https://console.groq.com/keys):
+#   OPENAI_BASE_URL=https://api.groq.com/openai/v1
+#   OPENAI_MODEL=llama-3.3-70b-versatile
+# En Vercel: Project → Settings → Environment Variables. En local: export.
+
+
+def ia_configurada() -> bool:
+    return bool((os.environ.get("OPENAI_API_KEY") or "").strip())
+
+
+def llamar_ia(prompt: str, timeout=45) -> str:
+    key = (os.environ.get("OPENAI_API_KEY") or "").strip()
+    if not key:
+        raise RuntimeError("IA no configurada: falta OPENAI_API_KEY")
+    base = (os.environ.get("OPENAI_BASE_URL") or "https://api.openai.com/v1").rstrip("/")
+    model = (os.environ.get("OPENAI_MODEL") or "").strip()
+    if not model:
+        model = "llama-3.3-70b-versatile" if "groq" in base else "gpt-4o-mini"
+    body = {"model": model, "temperature": 0.9, "max_tokens": 3000,
+            "messages": [{"role": "system", "content": "Respondés SOLO con JSON válido, sin markdown ni texto extra."},
+                         {"role": "user", "content": prompt}]}
+    if "openai.com" in base:
+        body["response_format"] = {"type": "json_object"}
+    req = urllib.request.Request(
+        base + "/chat/completions", data=json.dumps(body).encode(),
+        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        data = json.loads(r.read().decode("utf-8", errors="ignore"))
+    return data["choices"][0]["message"]["content"]
+
+
+def menu_desde_ia(ingredientes: List[str], dias_nombres: List[str],
+                 prefs: List[str], comensales: int):
+    """Genera el menú con IA (creativo, no determinista)."""
+    dias_txt = ", ".join(dias_nombres)
+    prompt = (
+        f"Sos un chef argentino experto en cocina saludable y económica. "
+        f"Ingredientes disponibles: {', '.join(ingredientes)}. Podés sumar otros ingredientes comunes. "
+        f"Armá un menú DISTINTO para cada uno de estos días: {dias_txt}. Para {comensales} personas. "
+        f"Devolvé SOLAMENTE un objeto JSON válido (sin markdown ni texto extra) con esta forma exacta: "
+        f'{{\"menu\": [{{\"titulo\": \"Nombre del plato\", \"descripcion\": \"1 línea\", '
+        f'\"tiempo\": \"25 min\", \"calorias\": \"480 kcal\", \"dificultad\": \"Fácil\", '
+        f'\"tags\": [\"alto-proteina\"], \"ingredientes_detalle\": [\"200g pollo\"], '
+        f'\"pasos\": [\"paso 1\"], \"tip\": \"consejo saludable\"}}]}} '
+        f"Reglas: platos habituales argentinos, saludables, variados entre días, "
+        f"cantidades para {comensales} personas, máximo 8 pasos y 12 ingredientes por receta. "
+        f"Preferencias: {', '.join(prefs) if prefs else 'ninguna'}."
+    )
+    texto = llamar_ia(prompt)
+    i, j = texto.find("{"), texto.rfind("}")
+    if i < 0 or j <= i:
+        return []
+    data = json.loads(texto[i:j + 1])
+    items = data.get("menu") if isinstance(data, dict) else data
+    if not isinstance(items, list):
+        return []
+    menu = []
+    for it in items:
+        if not isinstance(it, dict):
+            continue
+        titulo = str(it.get("titulo") or "").strip()
+        ings = [str(x).strip() for x in (it.get("ingredientes_detalle") or []) if str(x).strip()][:12]
+        pasos = [str(x).strip() for x in (it.get("pasos") or []) if str(x).strip()][:8]
+        if not titulo or not ings or not pasos:
+            continue
+        rid = "ia-" + hashlib.md5(titulo.encode()).hexdigest()[:12]
+        menu.append({
+            "dia": "", "dia_num": 0, "id": rid, "titulo": titulo,
+            "descripcion": str(it.get("descripcion") or "Receta creada con IA")[:160],
+            "tiempo": str(it.get("tiempo") or "—"),
+            "calorias": str(it.get("calorias") or "—"),
+            "dificultad": str(it.get("dificultad") or "—"),
+            "tags": ["ia"] + [str(t) for t in (it.get("tags") or [])][:3],
+            "origen": "ia",
+            "ingredientes_usan_tuyos": ingredientes[:3],
+            "ingredientes_detalle": ings,
+            "pasos": pasos,
+            "tip_saludable": str(it.get("tip") or "Equilibra el plato con verduras."),
+            "ver_en_google": google_url(titulo),
+            "ver_en_youtube": youtube_url(titulo + " receta"),
+        })
+        if len(menu) >= len(dias_nombres):
+            break
+    return menu
+
+
 # ---------------------------------------------------------------- modelos
 
 class GenerateIn(BaseModel):
@@ -1281,14 +1369,15 @@ class GenerateIn(BaseModel):
     preferencias: List[str] = Field(default_factory=list)
     dias_nombres: Optional[List[str]] = None  # ej: ["Lunes","Miércoles"]
     excluir: List[str] = Field(default_factory=list)  # ids de recetas a evitar (variedad)
-    fuente: str = Field(default="auto")  # auto | argentina | internet | curadas
+    fuente: str = Field(default="auto")  # auto | argentina | internet | ia | curadas
+    comensales: int = Field(default=4, ge=1, le=12)
 
 
 # ---------------------------------------------------------------- endpoints
 
 @app.get("/api/health")
 def health():
-    return {"ok": True, "recetas": len(RECETAS)}
+    return {"ok": True, "recetas": len(RECETAS), "ia": ia_configurada()}
 
 
 @app.get("/api/search")
@@ -1398,6 +1487,21 @@ def generate(body: GenerateIn):
     modo = (body.fuente or "auto").lower()
     semana = semana_curada
     fuente_usada = "curadas"
+    if modo == "ia":
+        # IA generativa (cantidades base para 4; el frontend escala por comensales)
+        ia = []
+        try:
+            ia = menu_desde_ia(ingredientes, nombres, prefs, 4)
+        except Exception:
+            ia = []
+        if len(ia) >= dias:
+            semana = ia[:dias]
+            fuente_usada = "ia"
+        elif ia:
+            ids_ia = {w["id"] for w in ia}
+            faltan = [e for e in semana_curada if e["id"] not in ids_ia][: dias - len(ia)]
+            semana = ia + faltan
+            fuente_usada = "mixta"
     if modo in ("auto", "argentina"):
         ar = []
         try:
