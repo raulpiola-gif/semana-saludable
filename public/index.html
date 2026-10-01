@@ -600,34 +600,45 @@ function escalarTexto(s, f){
   });
 }
 
-// ---------------- lista de compras: solo principales, sin condimentos.
+// ---------------- lista de compras: solo nombres de ingredientes, sin cantidades.
 // Marca lo que YA TIENES en casa; Copiar trae solo lo que falta comprar.
-const CONDIMENTOS = ["sal", "pimienta", "aceite", "oliva", "vinagre", "aceto",
-  "mostaza", "ketchup", "mayonesa", "salsa golf", "barbacoa", "soja", "tabasco",
-  "comino", "pimenton", "paprika", "oregano", "curry", "curcuma", "canela",
-  "nuez moscada", "clavo", "laurel", "tomillo", "romero", "albahaca", "perejil",
-  "cilantro", "menta", "provenzal", "chimichurri", "adobo", "azafran",
-  "colorante", "bicarbonato", "levadura", "polvo de hornear", "azucar",
-  "edulcorante", "stevia", "agua"];
-function esCondimento(s){
-  const t = ' ' + s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'') + ' ';
-  return CONDIMENTOS.some(c => t.includes(' ' + c + ' ') || t.includes(' ' + c + ','));
+const UNIDADES = new Set(['g','gr','grs','kg','mg','ml','l','lt','litro','litros','taza','tazas','vaso','vasos','cda','cdas','cdta','cdtas','cucharada','cucharadas','cucharadita','cucharaditas','sobre','sobres','paquete','paquetes','pote','potes','lata','latas','botella','botellas','diente','dientes','cabeza','cabezas','atado','atados','rodaja','rodajas','rebanada','rebanadas','feta','fetas','trozo','trozos','pedazo','pedazos','unidad','unidades','pizca','chorro','chorrito','punado','puñado','rama','ramita','hoja','hojas','mazo','sachet']);
+function sinTilde(w){ return w.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+function nombreIngrediente(s){
+  let t = String(s || '').trim().replace(/\s+/g, ' ');
+  t = t.replace(/^\d+(?:[.,]\d+)?\s*(?:g|gr|grs|kg|mg|ml|l|cc)\b\s*/i, '');       // 400g / 200 ml
+  t = t.replace(/^(\d+(?:[.,]\d+)?(?:\s+\d+\/\d+)?|\d+\/\d+|unas?|media|medio)\s+/i, ''); // cantidad
+  const m = t.match(/^([a-záéíóúñü]+)\s+(de\s+)?(.*)$/i);
+  if(m && UNIDADES.has(sinTilde(m[1]))) t = ((m[3] || '').trim() || t).replace(/^de\s+/i, '');
+  t = t.replace(/^(diente|dientes|cabeza|atado|rodaja|rodajas|lata|ramita|hoja|hojas)\s+de\s+/i, '');
+  return t.trim();
+}
+function aplanarNombres(lista){
+  const out = [], vistos = new Set();
+  (lista || []).forEach(linea=>{
+    let partes = [linea];
+    if(!/^\s*\d/.test(linea) && String(linea).includes(',')) partes = String(linea).split(/,|\s+y\s+/);
+    partes.forEach(p=>{
+      const n = nombreIngrediente(p);
+      const k = n.toLowerCase();
+      if(n.length > 1 && !vistos.has(k)){ vistos.add(k); out.push(n); }
+    });
+  });
+  return out;
 }
 function pintarCompras(lista){
-  const f = factor();
-  const items = lista.filter(x => !esCondimento(x));
-  document.getElementById('compFactor').textContent = `Para ${comensales} ${comensales===1?'persona':'personas'} · marca lo que ya tienes en casa`;
-  document.getElementById('compras').innerHTML = items.length ? items.map(x=>{
-    const t = escalarTexto(x, f);
+  const items = aplanarNombres(lista);
+  document.getElementById('compFactor').textContent = 'Marca lo que ya tienes en casa';
+  document.getElementById('compras').innerHTML = items.length ? items.map(t=>{
     return `<label class="flex gap-2 items-start text-sm bg-mist border border-line rounded-xl px-3 py-2 cursor-pointer"><input type="checkbox" class="compra-check accent-[#1C7F52] mt-1"/> <span>${t}</span></label>`;
-  }).join('') : '<p class="text-sm text-slate-400">Nada que comprar: todo es de tu alacena.</p>';
+  }).join('') : '<p class="text-sm text-slate-400">Genera tu semana para verla aquí.</p>';
 }
 function copiarCompras(){
   if(!menuActual) return aviso('Primero genera un menú.');
   const faltan = [...document.querySelectorAll('#compras input.compra-check:not(:checked)')]
     .map(i => i.parentElement.querySelector('span').textContent.trim()).filter(Boolean);
   if(!faltan.length) return aviso('Ya tienes todo marcado. Desmarca lo que te falte comprar.');
-  copiarTexto(`Compras (${comensales} personas)\n` + faltan.map(x=>'- '+x).join('\n'), `Lista copiada: ${faltan.length} ingredientes por comprar.`);
+  copiarTexto('Compras\n' + faltan.map(x=>'- '+x).join('\n'), `Lista copiada: ${faltan.length} ingredientes por comprar.`);
 }
 
 // ---------------- exportar WhatsApp (desde el planner: solo títulos)
