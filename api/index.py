@@ -857,9 +857,12 @@ def menu_desde_internet(ingredientes: List[str], dias: int, excluir: List[str]):
         if en and en not in terms:
             terms.append(en)
     candidatos, vistos = [], set()
+    solo_salsas = pide_salsa(ingredientes)
     for t in terms[:4]:
         for m in buscar_themealdb(t):
             if m.get("id") and m["id"] not in vistos and f"web-{m['id']}" not in excl:
+                if not solo_salsas and es_salsa(m.get("nombre", "")):
+                    continue
                 vistos.add(m["id"])
                 candidatos.append(m)
         if len(candidatos) >= dias + 8:
@@ -879,6 +882,30 @@ def menu_desde_internet(ingredientes: List[str], dias: int, excluir: List[str]):
 # ---------------------------------------------------------------- recetas hispanas (sitios AR/ES)
 # Busca recetas reales en sitios de habla hispana (con prioridad argentina)
 # y extrae cada receta desde su marcado schema.org/Recipe. Sin API key.
+TIPOS_SALSA = ["salsa", "salsas", "aderezo", "aliño", "vinagreta", "mayonesa",
+               "ketchup", "ketchúp", "mostaza", "chimichurri", "provenzal",
+               "alioli", "dip", "paté", "pate", "hummus", "guacamole",
+               "sauce", "dressing", "mayonnaise", "mustard", "gravy"]
+
+
+def es_salsa(titulo: str) -> bool:
+    """Detecta si el título es una salsa/aderezo y no un plato."""
+    t = normalizar(titulo or "")
+    if re.search(r"\d+\s*salsas?\b", t):
+        return True
+    for s in TIPOS_SALSA:
+        if t.startswith(s) or t.startswith("receta de " + s):
+            return True
+    if t in ("dip", "hummus", "guacamole", "chimichurri", "alioli",
+             "pate", "paté", "mayonesa", "mostaza"):
+        return True
+    return False
+
+
+def pide_salsa(ingredientes: List[str]) -> bool:
+    """True si el usuario pidió explícitamente una salsa."""
+    txt = " ".join(normalizar(i) for i in (ingredientes or []))
+    return any(s in txt for s in TIPOS_SALSA)
 PREF_AR = ["paulinacocina", "cookpad.com", "clarin.com", "lanacion", "elgourmet",
            "cucinare", "tn.com.ar", "telefe", "eltrecetv", "cocinaargentina",
            "recetasargentinas", "cocinerosargentinos", "infobae.com",
@@ -1225,6 +1252,9 @@ def menu_desde_hispano(ingredientes: List[str], dias: int, excluir: List[str]):
                 continue
             # descarta páginas-índice ("57 recetas fáciles...") y duplicados
             if re.search(r"\d+\s*recetas|recetario", r["titulo"] or "", re.I):
+                continue
+            # obvia salsas salvo pedido explícito (platos, no aderezos)
+            if not pide_salsa(ingredientes) and es_salsa(r["titulo"]):
                 continue
             nt = normalizar(r["titulo"])
             if r["id"] in {x["id"] for x in resultados} or nt in vistos_titulos:
