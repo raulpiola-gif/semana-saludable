@@ -124,10 +124,10 @@ tailwind.config = { theme: { extend: {
         <div class="mt-4">
           <label class="font-display font-bold text-sm text-pine-950">4 · Origen</label>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-1 mt-2 bg-mist rounded-2xl p-1">
-            <button id="tabAr" onclick="setFuente('argentina')" class="py-2 rounded-xl text-sm font-semibold">Argentina</button>
-            <button id="tabWeb" onclick="setFuente('internet')" class="py-2 rounded-xl text-sm font-semibold">Internet</button>
             <button id="tabIA" onclick="setFuente('ia')" class="py-2 rounded-xl text-sm font-semibold">IA</button>
+            <button id="tabAr" onclick="setFuente('argentina')" class="py-2 rounded-xl text-sm font-semibold">Argentina</button>
             <button id="tabCur" onclick="setFuente('curadas')" class="py-2 rounded-xl text-sm font-semibold">Clásicas</button>
+            <button id="tabWeb" onclick="setFuente('internet')" class="py-2 rounded-xl text-sm font-semibold">Internet</button>
           </div>
         </div>
 
@@ -308,7 +308,7 @@ let planner = JSON.parse(localStorage.getItem('planner') || '{}');
 const DIAS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
 const DIAS_CORTO = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 let diasSel = [...DIAS];
-let fuente = 'argentina';
+let fuente = 'ia';
 function setFuente(f){
   fuente = f;
   const on = 'py-2 rounded-xl text-sm font-semibold bg-white shadow';
@@ -833,7 +833,12 @@ async function guardarMenu(){
     const titulo = prompt('Nombre para guardar este menú:', `Menú ${menuActual.menu.length} días · ${new Date().toLocaleDateString()}`);
     if(!titulo) return;
     const registro = { titulo, dias: menuActual.menu.length, base: menuActual.ingredientes_recibidos, menu: menuActual.menu, compras: menuActual.lista_compras, comensales: comensales, user_id: s.user.id };
-    const { error } = await cliente.from('menus_guardados').insert(registro);
+    let { error } = await cliente.from('menus_guardados').insert(registro);
+    if (error && /comensales/i.test(error.message || '')) {
+      // tabla anterior sin columna comensales: reintenta sin ese campo
+      const { comensales: _c, ...sinCom } = registro;
+      ({ error } = await cliente.from('menus_guardados').insert(sinCom));
+    }
     if (error) { aviso('Supabase: '+error.message); }
     else aviso('Menú guardado en tu cuenta.');
   } else {
@@ -899,7 +904,7 @@ async function borrarGuardado(id){
 }
 
 // init
-renderChips(); renderDias(); setFuente('argentina'); marcarIA(); renderPlanner(); wireAuth(); refrescarAuth(); cargarGuardados();
+renderChips(); renderDias(); setFuente('ia'); marcarIA(); renderPlanner(); wireAuth(); refrescarAuth(); cargarGuardados();
 </script>
 </body>
 </html>

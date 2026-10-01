@@ -16,6 +16,10 @@ create table if not exists menus_guardados (
 alter table menus_guardados
   add column if not exists user_id uuid references auth.users(id) on delete cascade;
 
+-- Comensales usados al generar (para escalar cantidades al reabrir).
+alter table menus_guardados
+  add column if not exists comensales int not null default 4;
+
 create index if not exists idx_menus_user on menus_guardados(user_id);
 
 alter table menus_guardados enable row level security;
