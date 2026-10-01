@@ -1298,9 +1298,13 @@ def llamar_ia(prompt: str, timeout=45) -> str:
                          {"role": "user", "content": prompt}]}
     if "openai.com" in base:
         body["response_format"] = {"type": "json_object"}
+    if "groq" in base or "gpt-oss" in model or "qwen" in model.lower():
+        # modelos con razonamiento: respuesta directa en content
+        body["reasoning_effort"] = "low"
     req = urllib.request.Request(
         base + "/chat/completions", data=json.dumps(body).encode(),
-        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
+        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json",
+                 "User-Agent": "semana-saludable/1.0"})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         data = json.loads(r.read().decode("utf-8", errors="ignore"))
     return data["choices"][0]["message"]["content"]
