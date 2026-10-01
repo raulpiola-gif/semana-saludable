@@ -512,14 +512,19 @@ function renderPlanner(){
 }
 
 // ---------------- supabase: guardar / listar
-// ---------------- supabase: cliente (precargado; se puede sobrescribir desde ⚙️)
+// ---------------- supabase: cliente único reutilizable
 const SB_URL_DEFAULT = 'https://pzwefgyeawvpwiatosfx.supabase.co';
 const SB_KEY_DEFAULT = 'sb_publishable_SmMiHxIUbOB7Vdy-QkniUQ_yKPCzU4s';
 function sbCred(key){ return localStorage.getItem(key) || (key==='sb_url' ? SB_URL_DEFAULT : SB_KEY_DEFAULT); }
+let _sbClient = null, _sbKey = '';
 function sb(){
   const url = sbCred('sb_url'), k = sbCred('sb_key');
   if(!url || !k) return null;
-  return supabase.createClient(url, k);
+  if(!_sbClient || _sbKey !== url+'|'+k){
+    _sbClient = supabase.createClient(url, k);
+    _sbKey = url+'|'+k;
+  }
+  return _sbClient;
 }
 
 // ---------------- auth (login con Supabase)
@@ -613,7 +618,7 @@ async function guardarConfig(){
   const url = document.getElementById('cfgUrl').value.trim(), key = document.getElementById('cfgKey').value.trim();
   localStorage.setItem('sb_url', url); localStorage.setItem('sb_key', key);
   document.getElementById('cfgEstado').textContent = 'Verificando…';
-  try { const c = supabase.createClient(url,key); const {error} = await c.from('menus_guardados').select('id').limit(1); document.getElementById('cfgEstado').textContent = error ? error.message : 'Conectado. Ya puedes ingresar y guardar menús.'; if(!error){ wireAuth(); refrescarAuth(); cargarGuardados(); } }
+  try { const c = supabase.createClient(url,key); const {error} = await c.from('menus_guardados').select('id').limit(1); document.getElementById('cfgEstado').textContent = error ? error.message : 'Conectado. Ya puedes ingresar y guardar menús.'; if(!error){ authWire = false; _sbClient = null; wireAuth(); refrescarAuth(); cargarGuardados(); } }
   catch(e){ document.getElementById('cfgEstado').textContent = 'Revisa URL/key.'; }
 }
 
