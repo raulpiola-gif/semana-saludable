@@ -70,7 +70,7 @@ Sin clave, el tab IA usa el circuito normal con fallback. Para activar recetas 1
 2. En Vercel: tu proyecto → **Settings → Environment Variables** → agrega:
    - `OPENAI_API_KEY` = tu clave
    - `OPENAI_BASE_URL` = `https://api.groq.com/openai/v1`
-   - `OPENAI_MODEL` = `llama-3.3-70b-versatile`
+   - `OPENAI_MODEL` = `openai/gpt-oss-120b`
 3. **Redeploy** (Deployments → ⋯ → Redeploy) para que tome las variables.
 4. En local: `export OPENAI_API_KEY=...` antes de `uvicorn`.
 El tab IA muestra "sin clave" hasta configurarla. Sirve cualquier endpoint OpenAI-compatible.

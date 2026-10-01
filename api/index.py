@@ -1292,7 +1292,7 @@ def llamar_ia(prompt: str, timeout=45) -> str:
     base = (os.environ.get("OPENAI_BASE_URL") or "https://api.openai.com/v1").rstrip("/")
     model = (os.environ.get("OPENAI_MODEL") or "").strip()
     if not model:
-        model = "llama-3.3-70b-versatile" if "groq" in base else "gpt-4o-mini"
+        model = "openai/gpt-oss-120b" if "groq" in base else "gpt-4o-mini"
     body = {"model": model, "temperature": 0.9, "max_tokens": 3000,
             "messages": [{"role": "system", "content": "Respondés SOLO con JSON válido, sin markdown ni texto extra."},
                          {"role": "user", "content": prompt}]}
