@@ -578,12 +578,13 @@ def buscar_themealdb(ingrediente: str, timeout=6):
         meals = data.get("meals") or []
         return [
             {
+                "id": m.get("idMeal", ""),
                 "nombre": m.get("strMeal", ""),
                 "foto": m.get("strMealThumb", ""),
                 "fuente": f"https://www.themealdb.com/meal/{m.get('idMeal','')}",
                 "ingrediente_match": ingrediente,
             }
-            for m in meals[:4]
+            for m in meals[:6]
         ]
     except Exception:
         return []
@@ -602,6 +603,243 @@ def lookup_themealdb_detalle(nombre: str, timeout=6):
         return meals[0]
     except Exception:
         return None
+
+
+# ---------------------------------------------------------------- internet
+# Glosario ES->EN para buscar ingredientes del usuario en TheMealDB (en inglés).
+ES_EN = {
+    "pollo": "chicken", "arroz": "rice", "huevo": "egg", "huevos": "egg",
+    "leche": "milk", "queso": "cheese", "tomate": "tomato", "tomates": "tomato",
+    "cebolla": "onion", "ajo": "garlic", "papa": "potato", "patata": "potato",
+    "papas": "potato", "zanahoria": "carrot", "zanahorias": "carrot",
+    "carne": "beef", "cerdo": "pork", "pescado": "fish", "atun": "tuna",
+    "atún": "tuna", "salmon": "salmon", "salmón": "salmon", "merluza": "hake",
+    "camaron": "shrimp", "camarones": "shrimp", "tofu": "tofu",
+    "espinaca": "spinach", "espinacas": "spinach", "lechuga": "lettuce",
+    "brocoli": "broccoli", "brócoli": "broccoli", "coliflor": "cauliflower",
+    "zapallo": "pumpkin", "calabaza": "pumpkin", "choclo": "corn", "maiz": "corn",
+    "maíz": "corn", "arvejas": "peas", "arveja": "peas", "porotos": "beans",
+    "frijoles": "beans", "poroto": "beans", "lentejas": "lentils", "lenteja": "lentils",
+    "garbanzos": "chickpeas", "garbanzo": "chickpeas", "palta": "avocado",
+    "aguacate": "avocado", "limon": "lemon", "limón": "lemon", "lima": "lime",
+    "pasta": "pasta", "fideos": "pasta", "tallarines": "pasta",
+    "pimiento": "pepper", "morron": "pepper", "morrón": "pepper",
+    "pepino": "cucumber", "manzana": "apple", "banana": "banana", "mango": "mango",
+    "miel": "honey", "harina": "flour", "avena": "oats", "manteca": "butter",
+    "mantequilla": "butter", "yogur": "yogurt", "yogurt": "yogurt",
+    "batata": "sweet potato", "boniato": "sweet potato", "berenjena": "eggplant",
+    "zucchini": "zucchini", "zapallito": "zucchini", "repollo": "cabbage",
+    "apio": "celery", "jengibre": "ginger", "curry": "curry", "comino": "cumin",
+    "pimenton": "paprika", "pimentón": "paprika", "oregano": "oregano",
+    "orégano": "oregano", "perejil": "parsley", "albahaca": "basil",
+    "canela": "cinnamon", "mostaza": "mustard", "soja": "soy sauce",
+    "vinagre": "vinegar", "pan": "bread", "quinoa": "quinoa", "couscous": "couscous",
+    "cuscus": "couscous", "champignon": "mushroom", "champiñones": "mushroom",
+    "hongos": "mushroom", "nuez": "walnuts", "nueces": "walnuts",
+    "almendra": "almonds", "mani": "peanuts", "maní": "peanuts", "coco": "coconut",
+    "chocolate": "chocolate", "vainilla": "vanilla", "naranja": "orange",
+    "frutilla": "strawberry", "ananá": "pineapple", "anana": "pineapple",
+    "pera": "pear", "durazno": "peach", "uva": "grapes", "sandia": "watermelon",
+    "pavo": "turkey", "cordero": "lamb", "pato": "duck", "jamon": "ham",
+    "salchicha": "sausage", "chorizo": "sausage", "panceta": "bacon",
+    "crema": "cream", "ricota": "ricotta", "mozzarella": "mozzarella",
+    "parmesano": "parmesan", "feta": "feta", "aceituna": "olives",
+    "olivas": "olives", "aceitunas": "olives", "menta": "mint", "romero": "rosemary",
+    "tomillo": "thyme", "laurel": "bay leaf", "cilantro": "coriander",
+    "kale": "kale", "rucula": "rocket", "rúcula": "rocket",
+}
+
+# Glosario EN->ES para mostrar las recetas de internet en español.
+# Traducción automática aproximada (frases largas primero).
+EN_ES = {
+    "olive oil": "aceite de oliva", "vegetable oil": "aceite vegetal",
+    "sesame oil": "aceite de sésamo", "soy sauce": "salsa de soja",
+    "lemon juice": "jugo de limón", "orange juice": "jugo de naranja",
+    "tomato puree": "puré de tomate", "tomato paste": "extracto de tomate",
+    "chopped tomatoes": "tomates picados", "tinned tomatoes": "tomates en lata",
+    "chicken breast": "pechuga de pollo", "chicken stock": "caldo de pollo",
+    "chicken thighs": "muslos de pollo", "minced beef": "carne picada",
+    "minced pork": "cerdo picado", "ground beef": "carne picada",
+    "red pepper": "morrón rojo", "green pepper": "morrón verde",
+    "yellow pepper": "morrón amarillo", "black pepper": "pimienta negra",
+    "spring onions": "cebollas de verdeo", "spring onion": "cebolla de verdeo",
+    "bay leaf": "hoja de laurel", "bay leaves": "hojas de laurel",
+    "baking powder": "polvo de hornear", "corn flour": "maicena",
+    "cornstarch": "maicena", "icing sugar": "azúcar impalpable",
+    "dark chocolate": "chocolate amargo", "coconut milk": "leche de coco",
+    "peanut butter": "manteca de maní", "red wine": "vino tinto",
+    "white wine": "vino blanco", "green beans": "chauchas",
+    "kidney beans": "porotos colorados", "black beans": "porotos negros",
+    "white beans": "porotos blancos", "red lentils": "lentejas rojas",
+    "long grain rice": "arroz grano largo", "jasmine rice": "arroz jazmín",
+    "lemon zest": "ralladura de limón", "orange zest": "ralladura de naranja",
+    "sour cream": "crema ácida", "greek yogurt": "yogur griego",
+    "heavy cream": "crema", "double cream": "crema",
+    "sea salt": "sal marina", "chicken": "pollo", "beef": "carne", "pork": "cerdo",
+    "lamb": "cordero", "turkey": "pavo", "duck": "pato", "ham": "jamón",
+    "bacon": "panceta", "sausage": "chorizo", "fish": "pescado",
+    "salmon": "salmón", "tuna": "atún", "hake": "merluza", "cod": "bacalao",
+    "shrimp": "camarones", "prawns": "langostinos", "mussels": "mejillones",
+    "squid": "calamar", "octopus": "pulpo", "egg": "huevo", "eggs": "huevos",
+    "rice": "arroz", "pasta": "pasta", "spaghetti": "espaguetis",
+    "noodles": "fideos", "bread": "pan", "flour": "harina", "milk": "leche",
+    "cheese": "queso", "butter": "manteca", "oil": "aceite", "garlic": "ajo",
+    "onion": "cebolla", "onions": "cebollas", "tomato": "tomate",
+    "tomatoes": "tomates", "potato": "papa", "potatoes": "papas",
+    "carrot": "zanahoria", "carrots": "zanahorias", "broccoli": "brócoli",
+    "spinach": "espinaca", "lettuce": "lechuga", "cucumber": "pepino",
+    "pepper": "pimiento", "peppers": "morrones", "mushroom": "champiñón",
+    "mushrooms": "champiñones", "corn": "choclo", "peas": "arvejas",
+    "beans": "porotos", "bean": "poroto", "lentils": "lentejas",
+    "lentil": "lenteja", "chickpeas": "garbanzos", "chickpea": "garbanzo",
+    "avocado": "palta", "lemon": "limón", "lime": "lima", "orange": "naranja",
+    "apple": "manzana", "banana": "banana", "pineapple": "ananá",
+    "mango": "mango", "strawberry": "frutilla", "strawberries": "frutillas",
+    "salt": "sal", "sugar": "azúcar", "honey": "miel", "soup": "sopa",
+    "salad": "ensalada", "stew": "guiso", "curry": "curry", "pie": "tarta",
+    "cake": "torta", "grilled": "grillado", "baked": "al horno", "bake": "hornear",
+    "fried": "frito", "roasted": "asado", "roast": "asado", "boil": "hervir",
+    "chopped": "picado", "sliced": "en rodajas", "diced": "en cubos",
+    "grated": "rallado", "minced": "picado", "melted": "derretido",
+    "beaten": "batido", "shredded": "desmenuzado", "sauce": "salsa",
+    "with": "con", "and": "y", "of": "de", "cup": "taza", "cups": "tazas",
+    "tablespoon": "cucharada", "teaspoon": "cucharadita", "clove": "diente",
+    "cloves": "dientes", "fresh": "fresco", "water": "agua", "heat": "calentar",
+    "add": "agregar", "mix": "mezclar", "stir": "revolver", "cook": "cocinar",
+    "serve": "servir", "minutes": "minutos", "minute": "minuto", "hour": "hora",
+    "until": "hasta que", "golden": "dorado", "brown": "dorado", "oven": "horno",
+    "pan": "sartén", "pot": "olla", "preheat": "precalentar", "cream": "crema",
+    "yogurt": "yogur", "mustard": "mostaza", "vinegar": "vinagre",
+    "wine": "vino", "white": "blanco", "red": "rojo", "black": "negro",
+    "green": "verde", "powder": "en polvo", "ground": "molido", "cumin": "comino",
+    "paprika": "pimentón", "oregano": "orégano", "basil": "albahaca",
+    "parsley": "perejil", "cinnamon": "canela", "ginger": "jengibre",
+    "coconut": "coco", "chocolate": "chocolate", "vanilla": "vainilla",
+    "peanut": "maní", "almond": "almendra", "walnuts": "nueces", "walnut": "nuez",
+    "vegetable": "verdura", "vegetables": "verduras", "stock": "caldo",
+    "broth": "caldo", "juice": "jugo", "hot": "caliente", "cold": "frío",
+    "large": "grande", "small": "pequeño", "medium": "mediano", "whole": "entero",
+    "half": "medio", "can": "lata", "tinned": "en lata", "feta": "feta",
+    "mozzarella": "mozzarella", "parmesan": "parmesano", "cheddar": "cheddar",
+    "olives": "aceitunas", "olive": "aceituna", "sesame": "sésamo",
+    "chili": "ají", "celery": "apio", "cabbage": "repollo",
+    "cauliflower": "coliflor", "eggplant": "berenjena", "zucchini": "zucchini",
+    "pumpkin": "zapallo", "asparagus": "espárragos", "coriander": "cilantro",
+    "mint": "menta", "thyme": "tomillo", "rosemary": "romero",
+    "tofu": "tofu", "oats": "avena", "couscous": "cuscús", "quinoa": "quinoa",
+    "yeast": "levadura", "coffee": "café", "tea": "té", "seafood": "mariscos",
+    "vegetarian": "vegetariana", "vegan": "vegana", "starter": "entrada",
+    "side": "guarnición", "dessert": "postre", "miscellaneous": "varios",
+    "thai": "tailandés", "italian": "italiano", "mexican": "mexicano",
+    "chinese": "chino", "japanese": "japonés", "indian": "indio",
+    "jamaican": "jamaiquino", "greek": "griego", "french": "francés",
+    "spanish": "español", "american": "americano", "british": "británico",
+    "moroccan": "marroquí", "lebanese": "libanés", "turkish": "turco",
+}
+
+
+def traducir_en_es(texto: str) -> str:
+    """Traducción automática aproximada EN->ES por glosario (sin API key)."""
+    if not texto:
+        return ""
+    out = f" {texto} "
+    for en in sorted(EN_ES, key=len, reverse=True):
+        out = re.sub(
+            r"(?i)(?<![a-záéíóúñ])" + re.escape(en) + r"(?![a-záéíóúñ])",
+            EN_ES[en],
+            out,
+        )
+    out = re.sub(r"\s+", " ", out).strip()
+    return out[0].upper() + out[1:] if out else out
+
+
+def meal_detail(id_meal: str, timeout=7):
+    """Detalle completo de una receta de TheMealDB."""
+    try:
+        url = f"https://www.themealdb.com/api/json/v1/1/lookup.php?i={urllib.parse.quote_plus(str(id_meal))}"
+        req = urllib.request.Request(url, headers={"User-Agent": "semana-saludable/1.0"})
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            data = json.loads(r.read().decode("utf-8", errors="ignore"))
+        meals = data.get("meals") or []
+        return meals[0] if meals else None
+    except Exception:
+        return None
+
+
+def meal_a_entrada(d, ingredientes):
+    """Convierte una receta real de internet al formato del menú."""
+    titulo_en = (d.get("strMeal") or "").strip()
+    titulo = traducir_en_es(titulo_en) or titulo_en
+    ings = []
+    for i in range(1, 21):
+        a = (d.get(f"strIngredient{i}") or "").strip()
+        b = (d.get(f"strMeasure{i}") or "").strip()
+        if a and a.lower() != "null":
+            a_es = traducir_en_es(a)
+            ings.append(f"{a_es} ({b})" if b else a_es)
+    instr = (d.get("strInstructions") or "").replace("\r", " ").strip()
+    partes = [p.strip(" .") for p in re.split(r"(?:\r?\n)+|\.\s+|\.\s*$", instr) if p.strip()]
+    pasos = [traducir_en_es(p) for p in partes[:6] if len(p) > 8]
+    yt = (d.get("strYoutube") or "").strip()
+    fuente = f"https://www.themealdb.com/meal/{d.get('idMeal','')}"
+    cat = traducir_en_es(d.get("strCategory") or "")
+    area = (d.get("strArea") or "").strip()
+    ings_norm = [normalizar(x) for x in ings]
+    usados = []
+    for ing in ingredientes:
+        ni = normalizar(ing)
+        if any(ni in x or x in ni for x in ings_norm):
+            usados.append(ing)
+    return {
+        "dia": "",
+        "dia_num": 0,
+        "id": f"web-{d.get('idMeal','')}",
+        "titulo": titulo,
+        "titulo_original": titulo_en,
+        "descripcion": f"Receta de internet · {cat}" + (f" · {area}" if area else ""),
+        "tiempo": "—",
+        "calorias": "—",
+        "dificultad": "De internet",
+        "tags": ["internet"] + ([cat.lower()] if cat else []),
+        "origen": "internet",
+        "foto": d.get("strMealThumb") or "",
+        "fuente_url": fuente,
+        "ingredientes_usan_tuyos": usados or ingredientes[:3],
+        "ingredientes_detalle": ings,
+        "pasos": pasos or ["Ver el paso a paso con video en el enlace de la receta."],
+        "tip_saludable": "Versión saludable: cocina con poco aceite, suma verduras y ajusta la sal a gusto.",
+        "ver_en_google": google_url(titulo_en or titulo),
+        "ver_en_youtube": yt if yt else youtube_url(titulo_en or titulo),
+        "nota_traduccion": True,
+    }
+
+
+def menu_desde_internet(ingredientes: List[str], dias: int, excluir: List[str]):
+    """Arma el menú con recetas REALES de internet (TheMealDB), no de lista fija."""
+    excl = set(excluir or [])
+    terms = []
+    for ing in ingredientes:
+        en = ES_EN.get(normalizar(ing), normalizar(ing))
+        if en and en not in terms:
+            terms.append(en)
+    candidatos, vistos = [], set()
+    for t in terms[:4]:
+        for m in buscar_themealdb(t):
+            if m.get("id") and m["id"] not in vistos and f"web-{m['id']}" not in excl:
+                vistos.add(m["id"])
+                candidatos.append(m)
+        if len(candidatos) >= dias + 8:
+            break
+    random.shuffle(candidatos)
+    menu = []
+    for cand in candidatos:
+        if len(menu) >= dias:
+            break
+        d = meal_detail(cand["id"])
+        if not d:
+            continue
+        menu.append(meal_a_entrada(d, ingredientes))
+    return menu
 
 
 # ---------------------------------------------------------------- modelos

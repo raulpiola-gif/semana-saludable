@@ -137,7 +137,7 @@ tailwind.config = { theme: { extend: {
         <p class="font-display font-bold text-pine-950 inline-flex items-center gap-2">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
           Mi planner</p>
-        <p class="text-xs text-slate-500 mt-1">Asigna un menú a un día. Toca × para liberar el día.</p>
+        <p class="text-xs text-slate-500 mt-1">Toca un día para escribir tu menú fijo, o asígnalo desde una receta generada.</p>
         <div id="planner" class="mt-3 space-y-2"></div>
       </div>
       <div class="bg-white rounded-3xl p-5 border border-line shadow">
@@ -178,13 +178,13 @@ tailwind.config = { theme: { extend: {
     <div class="flex items-center gap-2 flex-wrap">
       <h2 class="font-display font-extrabold text-xl text-pine-950 inline-flex items-center gap-2">
         <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l2-3a8 8 0 1 1 15-5z"/></svg>
-        Exportar a WhatsApp</h2>
+        Exportar planner a WhatsApp</h2>
       <button onclick="copiarWA()" class="ml-auto inline-flex items-center gap-1.5 text-sm px-4 py-2 rounded-xl bg-brand-600 text-white font-semibold">
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
         Copiar texto</button>
     </div>
-    <p class="text-xs text-slate-500 mt-1">Genera el texto del menú y la lista de compras listo para pegar en WhatsApp.</p>
-    <textarea id="waText" rows="8" readonly placeholder="Aquí aparecerá tu menú formateado para WhatsApp cuando generes tu semana…" class="mt-3 w-full rounded-2xl border border-line p-3 text-sm bg-mist focus:outline-none focus:ring-2 focus:ring-brand-500"></textarea>
+    <p class="text-xs text-slate-500 mt-1">Copia tu planner semanal (tus menús fijos y asignados) listo para pegar en WhatsApp.</p>
+    <textarea id="waText" rows="8" readonly placeholder="Aquí aparecerá tu planner cuando escribas o asignes menús a los días…" class="mt-3 w-full rounded-2xl border border-line p-3 text-sm bg-mist focus:outline-none focus:ring-2 focus:ring-brand-500"></textarea>
   </div>
 
   <h2 id="misMenus" class="font-display font-extrabold text-2xl mt-10 text-pine-950">Menús guardados</h2>
@@ -213,6 +213,31 @@ tailwind.config = { theme: { extend: {
       <button onclick="document.getElementById('cfgModal').close()" class="px-4 py-2.5 rounded-xl border border-line text-sm">Cerrar</button>
     </div>
     <p id="cfgEstado" class="text-xs mt-2 text-slate-500"></p>
+  </div>
+</dialog>
+
+<!-- MODAL EDITAR DÍA DEL PLANNER -->
+<dialog id="planModal" class="rounded-3xl p-0 w-[min(480px,94vw)]">
+  <div class="p-6">
+    <div class="flex items-start">
+      <h3 class="font-display font-bold text-lg text-pine-950">Editar día</h3>
+      <button onclick="document.getElementById('planModal').close()" class="ml-auto w-9 h-9 rounded-full bg-mist inline-flex items-center justify-center">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <p class="text-sm text-slate-500 mt-1">Escribe tu menú fijo o elige una receta del menú generado.</p>
+    <label class="text-xs font-semibold mt-4 block">Día</label>
+    <select id="planDia" class="mt-1 w-full border border-line rounded-xl p-2.5 text-sm bg-white"></select>
+    <label class="text-xs font-semibold mt-3 block">Título del menú (ej: Milanesa con ensalada)</label>
+    <input id="planTitulo" placeholder="Qué se come ese día" class="mt-1 w-full border border-line rounded-xl p-2.5 text-sm" />
+    <label class="text-xs font-semibold mt-3 block">Detalle / nota (ingredientes, horario…)</label>
+    <textarea id="planNota" rows="3" placeholder="Ej: comprar lechuga y tomate" class="mt-1 w-full border border-line rounded-xl p-2.5 text-sm"></textarea>
+    <label class="text-xs font-semibold mt-3 block">O trae una receta del menú generado</label>
+    <select id="planReceta" onchange="usarRecetaPlan()" class="mt-1 w-full border border-line rounded-xl p-2.5 text-sm bg-white"></select>
+    <div class="grid grid-cols-2 gap-2 mt-4">
+      <button onclick="guardarPlanDia()" class="py-2.5 rounded-xl bg-pine-950 text-white text-sm font-semibold">Guardar día</button>
+      <button onclick="limpiarPlanDia()" class="py-2.5 rounded-xl border border-line text-sm font-semibold">Dejar libre</button>
+    </div>
   </div>
 </dialog>
 
@@ -409,7 +434,7 @@ function pintarMenu(data){
         <div class="mt-3 text-xs text-slate-600">Usa tuyos: <b>${(m.ingredientes_usan_tuyos||[]).join(', ')||'—'}</b></div>
         <div class="mt-4 flex gap-2">
           <button class="flex-1 text-sm py-2 rounded-xl bg-brand-600 text-white font-semibold">Ver receta</button>
-          <button onclick="event.stopPropagation(); asignarPlanner(${i})" title="Asignar al planner" class="px-3 py-2 rounded-xl border border-line inline-flex items-center">${ic('cal')}</button>
+          <button onclick="event.stopPropagation(); abrirPlanDia('${m.dia}',${i})" title="Asignar al planner" class="px-3 py-2 rounded-xl border border-line inline-flex items-center">${ic('cal')}</button>
         </div>
       </div>
     </article>`).join('');
@@ -434,7 +459,7 @@ function verDetalle(i){
       <a href="${m.ver_en_youtube}" target="_blank" class="text-center text-sm py-2.5 rounded-xl border border-line font-semibold inline-flex items-center justify-center gap-1.5">${ic('play')} Ver en YouTube</a>
     </div>
     <div class="grid grid-cols-2 gap-2 mt-2">
-      <button onclick="asignarPlanner(${i});document.getElementById('modal').close()" class="text-sm py-2.5 rounded-xl bg-pine-950 text-white font-semibold">Asignar a un día</button>
+      <button onclick="abrirPlanDia('${m.dia}',${i});document.getElementById('modal').close()" class="text-sm py-2.5 rounded-xl bg-pine-950 text-white font-semibold">Asignar a un día</button>
       <button onclick="cambiarDia(${i})" class="text-sm py-2.5 rounded-xl bg-brand-600 text-white font-semibold inline-flex items-center justify-center gap-1.5">${ic('refresh')} Cambiar por otra</button>
     </div>`;
   document.getElementById('modal').showModal();
@@ -456,27 +481,26 @@ function copiarCompras(){
   copiarTexto('Lista de compras\n' + menuActual.lista_compras.map(x=>'- '+x).join('\n'), 'Lista copiada al portapapeles.');
 }
 
-// ---------------- exportar WhatsApp
+// ---------------- exportar WhatsApp (desde el planner)
 function textoWhatsApp(){
-  if(!menuActual) return '';
-  const L = ['*MI SEMANA SALUDABLE*', 'Base: ' + menuActual.ingredientes_recibidos.join(', '), ''];
-  menuActual.menu.forEach(m=>{
-    L.push('*' + m.dia.toUpperCase() + ' — ' + m.titulo + '*');
-    L.push(m.tiempo + ' · ' + m.calorias + ' · ' + m.dificultad);
-    L.push('Ingredientes:');
-    m.ingredientes_detalle.forEach(x=>L.push('- ' + x));
-    L.push('Preparación: ' + m.pasos.map((p,k)=>(k+1)+'. '+p).join(' '));
-    L.push('Tip: ' + m.tip_saludable);
+  const conAlgo = DIAS.some(d=>planner[d] && (planner[d].titulo||'').trim());
+  if(!conAlgo) return '';
+  const L = ['*MI SEMANA*', ''];
+  DIAS.forEach(d=>{
+    const e = planner[d];
+    L.push('*' + d.toUpperCase() + '*');
+    if(e && e.titulo){
+      L.push(e.titulo);
+      if(e.nota) L.push(e.nota);
+    } else L.push('Libre');
     L.push('');
   });
-  L.push('*LISTA DE COMPRAS*');
-  menuActual.lista_compras.forEach(x=>L.push('- ' + x));
-  return L.join('\n');
+  return L.join('\n').trim();
 }
 function actualizarWA(){ document.getElementById('waText').value = textoWhatsApp(); }
 function copiarWA(){
-  if(!menuActual) return aviso('Primero genera un menú.');
-  copiarTexto(textoWhatsApp(), 'Texto copiado. Pégalo en WhatsApp.');
+  if(!textoWhatsApp()) return aviso('El planner está vacío: toca un día para escribir tu menú.');
+  copiarTexto(textoWhatsApp(), 'Planner copiado. Pégalo en WhatsApp.');
 }
 function copiarTexto(t, okMsg){
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -499,24 +523,68 @@ function pintarInspo(arr){
     </a>`).join('');
 }
 
-// ---------------- planner (asignar / cambiar)
-function asignarPlanner(i){
-  const m = menuActual.menu[i];
-  const dia = prompt(`¿A qué día asignas "${m.titulo}"? (${DIAS.join(', ')})`, m.dia);
-  if(!dia) return;
-  const norm = DIAS.find(d=>d.toLowerCase()===dia.trim().toLowerCase()) || m.dia;
-  planner[norm] = { titulo: m.titulo, descripcion: m.descripcion, detalle: m.ingredientes_detalle, pasos: m.pasos };
+// ---------------- planner editable: menús fijos escritos a mano o del menú generado
+function notaDe(e){
+  if(!e) return '';
+  if(e.nota) return e.nota;
+  if(e.detalle && e.detalle.join) return e.detalle.join('\n');
+  return e.descripcion || '';
+}
+function abrirPlanDia(d, recetaIdx=null){
+  const sel = document.getElementById('planDia');
+  sel.innerHTML = DIAS.map(x=>`<option value="${x}" ${x===d?'selected':''}>${x}</option>`).join('');
+  const e = planner[d] || {};
+  document.getElementById('planTitulo').value = e.titulo || '';
+  document.getElementById('planNota').value = notaDe(e);
+  const rs = document.getElementById('planReceta');
+  const opts = menuActual ? menuActual.menu.map((m,i)=>`<option value="${i}">${m.dia} — ${m.titulo}</option>`).join('') : '';
+  rs.innerHTML = `<option value="">— escribir manual —</option>` + opts;
+  rs.value = recetaIdx !== null ? String(recetaIdx) : '';
+  if(recetaIdx !== null && menuActual) usarRecetaPlan();
+  document.getElementById('planModal').showModal();
+}
+function usarRecetaPlan(){
+  const v = document.getElementById('planReceta').value;
+  if(v === '' || !menuActual) return;
+  const m = menuActual.menu[+v];
+  document.getElementById('planTitulo').value = m.titulo;
+  document.getElementById('planNota').value = (m.ingredientes_detalle||[]).join('\n');
+}
+function guardarPlanDia(){
+  const d = document.getElementById('planDia').value;
+  const titulo = document.getElementById('planTitulo').value.trim();
+  const nota = document.getElementById('planNota').value.trim();
+  if(!titulo){ aviso('Escribe un título para el día.'); return; }
+  planner[d] = { titulo, nota, fijo: true };
+  localStorage.setItem('planner', JSON.stringify(planner));
+  document.getElementById('planModal').close();
+  renderPlanner();
+}
+function limpiarPlanDia(){
+  const d = document.getElementById('planDia').value;
+  delete planner[d];
+  localStorage.setItem('planner', JSON.stringify(planner));
+  document.getElementById('planModal').close();
+  renderPlanner();
+}
+function borrarPlanDia(d){
+  delete planner[d];
   localStorage.setItem('planner', JSON.stringify(planner));
   renderPlanner();
 }
-function quitarPlanner(d){ delete planner[d]; localStorage.setItem('planner', JSON.stringify(planner)); renderPlanner(); }
 function renderPlanner(){
-  document.getElementById('planner').innerHTML = DIAS.map(d=>`
-    <div class="flex items-center gap-2 text-sm border rounded-2xl px-3 py-2 ${planner[d]?'bg-brand-100 border-line':'bg-mist border-line'}">
+  document.getElementById('planner').innerHTML = DIAS.map(d=>{
+    const e = planner[d];
+    const txt = e ? `<span class="flex-1 min-w-0"><span class="block truncate font-medium text-pine-950">${e.titulo}</span>${e.nota?`<span class="block truncate text-xs text-slate-400">${e.nota.split('\n')[0]}</span>`:''}</span>`
+      : `<span class="flex-1 text-slate-400">libre — toca para escribir</span>`;
+    return `
+    <div onclick="abrirPlanDia('${d}')" class="flex items-center gap-2 text-sm border rounded-2xl px-3 py-2 cursor-pointer hover:border-brand-500 ${e?'bg-brand-100 border-line':'bg-mist border-line'}">
       <b class="w-12 shrink-0 text-xs text-pine-950">${DIAS_CORTO[DIAS.indexOf(d)]}</b>
-      <span class="flex-1 truncate">${planner[d]?planner[d].titulo:'<span class="text-slate-400">libre</span>'}</span>
-      ${planner[d]?`<button onclick="quitarPlanner('${d}')" class="inline-flex items-center text-slate-500 hover:text-pine-950">${ic('x','w-3.5 h-3.5')}</button>`:''}
-    </div>`).join('');
+      ${txt}
+      ${e?`<button onclick="event.stopPropagation(); borrarPlanDia('${d}')" class="inline-flex items-center text-slate-500 hover:text-pine-950">${ic('x','w-3.5 h-3.5')}</button>`:''}
+    </div>`;
+  }).join('');
+  actualizarWA();
 }
 
 // ---------------- supabase: guardar / listar
