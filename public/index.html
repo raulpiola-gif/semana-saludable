@@ -592,8 +592,13 @@ async function enviarAuth(){
 async function loginGoogle(){
   const c = sb();
   if(!c) return;
+  document.getElementById('authEstado').textContent = 'Abriendo Google…';
   const { error } = await c.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: location.origin } });
-  if(error) document.getElementById('authEstado').textContent = error.message;
+  if(error){
+    document.getElementById('authEstado').textContent = error.message.includes('not enabled')
+      ? 'Google aún no está habilitado en tu Supabase (Authentication → Providers → Google). Mientras tanto usa email y contraseña.'
+      : error.message;
+  }
 }
 async function cerrarSesion(){
   const c = sb(); if(c) await c.auth.signOut();
