@@ -128,7 +128,10 @@ tailwind.config = { theme: { extend: {
             <button id="tabWeb" onclick="setFuente('internet')" class="py-2 rounded-xl text-sm font-semibold">Internet</button>
             <button id="tabCur" onclick="setFuente('curadas')" class="py-2 rounded-xl text-sm font-semibold">Curadas</button>
           </div>
-          <p class="text-xs text-slate-500 mt-1">Argentina: de acá. Internet: del mundo. Curadas: en español.</p>
+          <label class="mt-2 flex items-center gap-2 text-sm cursor-pointer select-none">
+            <input id="estricto" type="checkbox" class="w-5 h-5 accent-[#1C7F52]" onchange="if(this.checked) setFuente('curadas')" />
+            <span class="font-semibold text-pine-950">Solo con lo que tengo</span>
+          </label>
         </div>
 
         <button id="genBtn" onclick="generar()" class="mt-5 w-full py-3.5 sm:py-4 rounded-2xl font-display font-bold text-white text-base sm:text-lg bg-gradient-to-r from-pine-900 to-brand-600 shadow-lg shadow-pine-900/25 hover:opacity-95 active:scale-[.99] inline-flex items-center justify-center gap-2">
@@ -418,11 +421,18 @@ async function generar(otras=false){
     if(otras && menuActual) excluir = [...new Set([...excluir, ...menuActual.menu.map(m=>m.id)])];
     const r = await fetch(API + '/api/generate', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ ingredientes, dias: diasSel.length, dias_nombres: diasSel, preferencias: getPrefs(), excluir, fuente })
+      body: JSON.stringify({ ingredientes, dias: diasSel.length, dias_nombres: diasSel, preferencias: getPrefs(), excluir, fuente, estricto: document.getElementById('estricto').checked })
     });
     if (!r.ok) throw new Error('API '+r.status);
     const data = await r.json();
     menuActual = data;
+    if(!data.menu.length){
+      document.getElementById('grid').innerHTML = '';
+      document.getElementById('resumen').textContent = '';
+      document.getElementById('saveBtn').disabled = true;
+      aviso(data.nota || 'Sin recetas para esos ingredientes.');
+      return;
+    }
     try { localStorage.setItem('ultimo_menu_ids', JSON.stringify(data.menu.map(m=>m.id))); } catch(_){}
     pintarMenu(data); pintarInspo(data.inspiracion_internet); actualizarWA();
     document.getElementById('saveBtn').disabled = false;

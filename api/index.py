@@ -885,7 +885,10 @@ def menu_desde_internet(ingredientes: List[str], dias: int, excluir: List[str]):
 TIPOS_SALSA = ["salsa", "salsas", "aderezo", "aliño", "vinagreta", "mayonesa",
                "ketchup", "ketchúp", "mostaza", "chimichurri", "provenzal",
                "alioli", "dip", "paté", "pate", "hummus", "guacamole",
-               "sauce", "dressing", "mayonnaise", "mustard", "gravy"]
+               "sauce", "dressing", "mayonnaise", "mustard", "gravy",
+               "mojo", "pesto", "romesco", "tzatziki", "baba ganoush",
+               "tapenade", "relish", "chutney", "pico de gallo", "sofrito",
+               "fondo", "adobo", "escabeche"]
 
 
 def es_salsa(titulo: str) -> bool:
@@ -1279,6 +1282,7 @@ class GenerateIn(BaseModel):
     dias_nombres: Optional[List[str]] = None  # ej: ["Lunes","Miércoles"]
     excluir: List[str] = Field(default_factory=list)  # ids de recetas a evitar (variedad)
     fuente: str = Field(default="auto")  # auto | argentina | internet | curadas
+    estricto: bool = Field(default=False)  # solo recetas con ingredientes del usuario
 
 
 # ---------------------------------------------------------------- endpoints
@@ -1318,6 +1322,29 @@ def generate(body: GenerateIn):
     ing_norm = [normalizar(i) for i in ingredientes]
 
     candidatas = [r for r in RECETAS if cumple_preferencias(r, prefs)] or list(RECETAS)
+
+    # Estricto: solo recetas cuyos ingredientes están todos en la lista del usuario.
+    if body.estricto:
+        candidatas = [
+            r for r in candidatas
+            if all(any(ing in normalizar(b) or normalizar(b) in ing for ing in ing_norm)
+                   for b in [normalizar(x) for x in r["ingredientes_base"]])
+        ]
+        if not candidatas:
+            return {
+                "ingredientes_recibidos": ingredientes,
+                "dias": dias,
+                "preferencias": prefs,
+                "fuente_usada": "curadas",
+                "menu": [],
+                "lista_compras": [],
+                "inspiracion_internet": [],
+                "sin_resultados": True,
+                "nota": "Ninguna receta usa solo tus ingredientes. Agrega más ingredientes o desactiva el modo estricto.",
+            }
+        # no repetir platos: máximo una vez cada receta que califica
+        dias = min(dias, len({r["id"] for r in candidatas}))
+        nombres = nombres[:dias]
 
     # Variedad: evita recetas ya mostradas y agrega azar al ranking
     # para que cada generación traiga opciones distintas y creativas.
@@ -1392,7 +1419,10 @@ def generate(body: GenerateIn):
 
     # menú con recetas REALES de internet (no lista fija); con fallback a curadas
     # auto = sitios argentinos primero, luego mundo, luego curadas
+    # estricto = siempre curadas (son las únicas 100% verificables)
     modo = (body.fuente or "auto").lower()
+    if body.estricto:
+        modo = "curadas"
     semana = semana_curada
     fuente_usada = "curadas"
     if modo in ("auto", "argentina"):
