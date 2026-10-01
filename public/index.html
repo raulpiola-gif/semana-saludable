@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Semana Saludable — Recetas con lo que tienes</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -331,10 +332,10 @@ function renderChips(){
   ).join('') || '<span class="text-xs text-slate-400">Sin ingredientes aún — escribe arriba o dicta con el micrófono.</span>';
 }
 
-// ---------------- voz robusta: continua + interina + auto-reconexión
-// El modo simple (una sola frase) cortaba palabras; ahora escucha en continuo,
-// muestra lo que va entendiendo y solo confirma al pulsar "Detener y agregar".
-let rec = null, escuchando = false, textoFinal = '';
+// ---------------- voz: separa ingredientes por pausa, sin cortar
+// Cada pausa del habla llega como resultado final y se agrega al instante
+// como ingrediente; lo que se está diciendo se muestra en vivo.
+let rec = null, escuchando = false, ultimoInterim = '';
 function toggleMic(){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { micMsg('Tu navegador no soporta dictado. Usa Chrome en PC o Android.'); return; }
@@ -342,16 +343,18 @@ function toggleMic(){
   rec = new SR();
   rec.lang = 'es-ES';
   rec.continuous = true;      // no se corta entre pausas
-  rec.interimResults = true;  // muestra resultados parciales en vivo
-  textoFinal = '';
+  rec.interimResults = true;  // muestra lo que va escuchando en vivo
+  ultimoInterim = '';
   rec.onresult = (e) => {
     let interim = '';
     for (let i = e.resultIndex; i < e.results.length; i++) {
-      const t = e.results[i][0].transcript;
-      if (e.results[i].isFinal) textoFinal += ' ' + t;
-      else interim += t;
+      const t = (e.results[i][0].transcript || '').trim();
+      if (e.results[i].isFinal) {
+        if (t) agregarHablado(t);   // la pausa separa: cada frase = ingrediente
+      } else interim += t + ' ';
     }
-    micMsg('Escuchando… "' + (textoFinal + ' ' + interim).trim() + '"');
+    ultimoInterim = interim.trim();
+    if (ultimoInterim) micMsg(`Escuchando… "${ultimoInterim}" · llevas ${ingredientes.length} ingredientes`);
   };
   rec.onend = () => {
     // Chrome corta solo: si el usuario no pidió detener, reconecta automáticamente
@@ -368,19 +371,29 @@ function toggleMic(){
     escuchando = true;
     document.getElementById('micBtn').classList.add('mic-live');
     document.getElementById('micStop').classList.remove('hidden');
-    micMsg('Escuchando… habla con pausas naturales y pulsa "Detener y agregar" al terminar.');
+    micMsg('Habla pausado: cada pausa agrega un ingrediente. Pulsa "Detener" al terminar.');
   } catch(_) { micMsg('No se pudo iniciar el micrófono. Intenta de nuevo.'); }
+}
+function agregarHablado(t){
+  // Separa lo dicho en la pausa por comas o "y" (ej: "pollo, arroz" o "sal y pimienta")
+  const antes = ingredientes.length;
+  t.split(/,|;|\s+y\s+/i).map(s=>s.trim().toLowerCase()).filter(s=>s.length>1).forEach(s=>{
+    if(!ingredientes.includes(s)) ingredientes.push(s);
+  });
+  renderChips();
+  const n = ingredientes.length - antes;
+  micMsg(n ? `Agregado: "${t}" · llevas ${ingredientes.length} ingredientes. Sigue hablando…` : `Ya tenía "${t}". Sigue hablando…`);
 }
 function detenerMic(confirmar){
   escuchando = false;
   try { rec && rec.stop(); } catch(_){}
   document.getElementById('micBtn').classList.remove('mic-live');
   document.getElementById('micStop').classList.add('hidden');
-  const t = (textoFinal||'').trim();
-  if (confirmar && t) { pushIngredientes(t); micMsg('Agregado: "' + t + '"'); }
-  else if (confirmar) { micMsg('No se escuchó nada. Habla más cerca del micrófono.'); }
-  else { micMsg(''); }
-  textoFinal = '';
+  const t = (ultimoInterim||'').trim();
+  if (confirmar && t) agregarHablado(t);
+  else if (confirmar) micMsg(ingredientes.length ? `Listo: ${ingredientes.length} ingredientes.` : 'No se escuchó nada. Habla más cerca del micrófono.');
+  else micMsg('');
+  ultimoInterim = '';
 }
 function micMsg(t){ document.getElementById('micStatus').textContent = t; }
 
