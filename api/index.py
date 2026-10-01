@@ -9,6 +9,9 @@ Compatible con Vercel Python Runtime (exporta `app`) y con `uvicorn api.index:ap
 import os
 import random
 import re
+import base64
+import hashlib
+import concurrent.futures
 import unicodedata
 import urllib.parse
 import urllib.request
@@ -873,6 +876,370 @@ def menu_desde_internet(ingredientes: List[str], dias: int, excluir: List[str]):
     return menu
 
 
+# ---------------------------------------------------------------- recetas hispanas (sitios AR/ES)
+# Busca recetas reales en sitios de habla hispana (con prioridad argentina)
+# y extrae cada receta desde su marcado schema.org/Recipe. Sin API key.
+PREF_AR = ["paulinacocina", "cookpad.com", "clarin.com", "lanacion", "elgourmet",
+           "cucinare", "tn.com.ar", "telefe", "eltrecetv", "cocinaargentina",
+           "recetasargentinas", "cocinerosargentinos", "infobae.com",
+           "diariouno.com.ar", "mundorecetas"]
+PREF_ES = ["recetasgratis", "kiwilimon", "recetasderechupete", "directoalpaladar",
+           "cocinacaserayfacil", "pequerecetas", "recetinas", "bonviveur",
+           "divinacocina", "gallinablanca", "nestlecocina", "superpollo"]
+BLOQUEADOS = ["youtube.com", "youtu.be", "facebook.com", "instagram.com",
+              "tiktok.com", "twitter.com", "pinterest.com", "amazon.",
+              "mercadolibre", "duckduckgo.com"]
+# URLs que son índices o listados, no una receta concreta.
+MALAS_URL = ["/recetario", "/page/", "/pagina", "/category", "/tag/", "/archivo",
+             "/blog", "?s=", "/search", "/autor", "/author", "/etiqueta"]
+
+UA_BROWSER = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+              "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36")
+
+
+def buscar_bing_recetas(query: str, timeout=10) -> List[str]:
+    """URLs de recetas vía Bing HTML (funciona sin API key).
+    Bing envuelve los links en /ck/a con la URL real en base64 (parámetro u)."""
+    try:
+        url = ("https://www.bing.com/search?q=" + urllib.parse.quote_plus(query)
+               + "&setlang=es-AR&cc=ar&mkt=es-AR")
+        req = urllib.request.Request(url, headers={"User-Agent": UA_BROWSER,
+                                                   "Accept-Language": "es-AR,es;q=0.9"})
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            html = r.read().decode("utf-8", errors="ignore")
+        urls = []
+        for bloque in html.split('<li class="b_algo"')[1:]:
+            m = re.search(r'u=a1([A-Za-z0-9%_.\-~+/=]+)', bloque)
+            if not m:
+                continue
+            raw = urllib.parse.unquote(m.group(1))
+            try:
+                u = base64.b64decode(raw + "=" * (-len(raw) % 4)).decode("utf-8", errors="ignore")
+            except Exception:
+                continue
+            ul = u.lower()
+            if not u.startswith("http"):
+                continue
+            if any(b in ul for b in BLOQUEADOS + ["bing.com", "msn.com", "microsoft.com"]):
+                continue
+            if u not in urls:
+                urls.append(u)
+        return urls
+    except Exception:
+        return []
+
+
+def puntuar_url(url: str):
+    u = url.lower()
+    for i, d in enumerate(PREF_AR):
+        if d in u:
+            return (0, i)
+    for i, d in enumerate(PREF_ES):
+        if d in u:
+            return (1, i)
+    return (2, 99)
+
+
+def buscar_recipe_ld(data):
+    if isinstance(data, dict):
+        t = data.get("@type")
+        if t == "Recipe" or (isinstance(t, list) and "Recipe" in t):
+            return data
+        for v in data.values():
+            if isinstance(v, (dict, list)):
+                r = buscar_recipe_ld(v)
+                if r:
+                    return r
+    elif isinstance(data, list):
+        for v in data:
+            if isinstance(v, (dict, list)):
+                r = buscar_recipe_ld(v)
+                if r:
+                    return r
+    return None
+
+
+def normalizar_receta_ld(rec, url: str, ingredientes: List[str]):
+    nombre = str(rec.get("name") or "").strip()
+    ings = rec.get("recipeIngredient") or rec.get("ingredients") or []
+    if isinstance(ings, str):
+        ings = [ings]
+    ings = [str(x).strip() for x in ings if str(x).strip()]
+    instr = rec.get("recipeInstructions") or []
+    if isinstance(instr, str):
+        instr = [p.strip() for p in re.split(r"\n+|\.\s+", instr) if p.strip()]
+    pasos = aplanar_pasos(instr)
+    img = rec.get("image")
+    if isinstance(img, list):
+        img = img[0] if img else ""
+    if isinstance(img, dict):
+        img = img.get("url", "")
+    if not nombre or len(ings) < 2 or not pasos:
+        return None
+    dominio = urllib.parse.urlparse(url).netloc.replace("www.", "")
+    es_ar = puntuar_url(url)[0] == 0
+    rid = "ar-" + hashlib.md5(url.encode()).hexdigest()[:12]
+    ings_norm = [normalizar(x) for x in ings]
+    usados = []
+    for ing in ingredientes:
+        ni = normalizar(ing)
+        if any(ni in x or x in ni for x in ings_norm):
+            usados.append(ing)
+    return {
+        "dia": "",
+        "dia_num": 0,
+        "id": rid,
+        "titulo": nombre,
+        "descripcion": f"Receta de {dominio}" + (" · Argentina" if es_ar else ""),
+        "tiempo": str(rec.get("totalTime") or rec.get("cookTime") or "—").replace("PT", "").replace("M", " min").strip() or "—",
+        "calorias": "—",
+        "dificultad": "De internet",
+        "tags": ["internet", "argentina" if es_ar else "español"],
+        "origen": "internet",
+        "foto": img if isinstance(img, str) else "",
+        "fuente_url": url,
+        "ingredientes_usan_tuyos": usados or ingredientes[:3],
+        "ingredientes_detalle": ings,
+        "pasos": pasos[:6],
+        "tip_saludable": "Versión saludable: cocina con poco aceite, suma verduras y ajusta la sal a gusto.",
+        "ver_en_google": google_url(nombre),
+        "ver_en_youtube": youtube_url(nombre + " receta"),
+    }
+
+
+def aplanar_pasos(instr):
+    pasos = []
+
+    def rec(x):
+        if isinstance(x, str):
+            t = x.strip().strip(".")
+            if len(t) > 8:
+                pasos.append(t)
+        elif isinstance(x, dict):
+            t = str(x.get("text") or "").strip().strip(".")
+            if len(t) > 8:
+                pasos.append(t)
+            for k in ("itemListElement", "steps", "hasPart"):
+                v = x.get(k)
+                if isinstance(v, list):
+                    for i in v:
+                        rec(i)
+        elif isinstance(x, list):
+            for i in x:
+                rec(i)
+
+    rec(instr)
+    return pasos
+
+
+def limpiar_html_txt(s: str) -> str:
+    s = re.sub(r"<[^>]+>", " ", s)
+    s = re.sub(r"&nbsp;|&#160;", " ", s)
+    s = re.sub(r"&(amp|quot|lt|gt);",
+               lambda m: {"amp": "&", "quot": '"', "lt": "<", "gt": ">"}[m.group(1)], s)
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def armar_entrada_web(titulo, ings, pasos, foto, url, ingredientes):
+    dominio = urllib.parse.urlparse(url).netloc.replace("www.", "")
+    es_ar = puntuar_url(url)[0] == 0
+    rid = "ar-" + hashlib.md5(url.encode()).hexdigest()[:12]
+    ings_norm = [normalizar(x) for x in ings]
+    usados = []
+    for ing in ingredientes:
+        ni = normalizar(ing)
+        if any(ni in x or x in ni for x in ings_norm):
+            usados.append(ing)
+    return {
+        "dia": "",
+        "dia_num": 0,
+        "id": rid,
+        "titulo": titulo,
+        "descripcion": f"Receta de {dominio}" + (" · Argentina" if es_ar else ""),
+        "tiempo": "—",
+        "calorias": "—",
+        "dificultad": "De internet",
+        "tags": ["internet", "argentina" if es_ar else "español"],
+        "origen": "internet",
+        "foto": foto if isinstance(foto, str) else "",
+        "fuente_url": url,
+        "ingredientes_usan_tuyos": usados or ingredientes[:3],
+        "ingredientes_detalle": ings,
+        "pasos": pasos[:6],
+        "tip_saludable": "Versión saludable: cocina con poco aceite, suma verduras y ajusta la sal a gusto.",
+        "ver_en_google": google_url(titulo),
+        "ver_en_youtube": youtube_url(titulo + " receta"),
+    }
+
+
+def extraer_receta_html(url: str, ingredientes: List[str], timeout=7):
+    """Fallback: extrae ingredientes/pasos desde el HTML (listas tras encabezados)."""
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": UA_BROWSER,
+                                                    "Accept-Language": "es-AR,es;q=0.9"})
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            if "html" not in (r.headers.get("Content-Type", "")):
+                return None
+            html = r.read(600000).decode("utf-8", errors="ignore")
+
+        def lista_tras(patron, min_len=1):
+            m = re.search(patron, html, re.I | re.S)
+            if not m:
+                return []
+            seg = html[m.end(): m.end() + 8000]
+            mh = re.search(r"<h[1-4][^>]*>", seg, re.I)
+            zonas = [seg[: mh.start()]] if mh else []
+            zonas.append(seg)
+
+            def buscar_lista(zona):
+                lm = re.search(r"<(ul|ol)[^>]*>(.*?)</\1>", zona, re.S | re.I)
+                if lm:
+                    return [limpiar_html_txt(x) for x in
+                            re.findall(r"<li[^>]*>(.*?)</li>", lm.group(2), re.S | re.I)]
+                return []
+
+            items = []
+            for zona in zonas:
+                items = [x for x in buscar_lista(zona) if x]
+                if len(items) >= 3:
+                    break
+            if len(items) < 3:
+                # fallback: párrafos sueltos (algunos sitios no usan listas)
+                zona = zonas[0]
+                ps = [limpiar_html_txt(x) for x in
+                      re.findall(r"<p[^>]*>(.*?)</p>", zona, re.S | re.I)]
+                ps = [x for x in ps if x]
+                fus = []
+                k = 0
+                while k < len(ps):
+                    if re.match(r"(?i)^paso\s*\d+", ps[k]) and k + 1 < len(ps):
+                        fus.append(ps[k] + ": " + ps[k + 1])
+                        k += 2
+                    else:
+                        fus.append(ps[k])
+                        k += 1
+                items = fus
+            return [x for x in items if len(x) >= min_len]
+
+        h1 = re.search(r"<h1[^>]*>(.*?)</h1>", html, re.S | re.I)
+        titulo = limpiar_html_txt(h1.group(1)) if h1 else ""
+        if len(titulo) > 120:
+            titulo = titulo[:120]
+        og = re.search(r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)',
+                       html, re.I)
+        foto = og.group(1) if og else ""
+        ings = lista_tras(r"<h[1-4][^>]*>.*?ingredientes.*?</h[1-4]>", 2)[:20]
+        pasos = lista_tras(
+            r"<h[1-4][^>]*>.*?(preparaci[oó]n|elaboraci[oó]n|paso a paso|instrucciones|procedimiento).*?</h[1-4]>",
+            20)[:8]
+        if not titulo or len(ings) < 3 or not pasos:
+            return None
+        return armar_entrada_web(titulo, ings, pasos, foto, url, ingredientes)
+    except Exception:
+        return None
+
+
+def extraer_receta_ld(url: str, ingredientes: List[str], timeout=7):
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": UA_BROWSER,
+                                                    "Accept-Language": "es-AR,es;q=0.9"})
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            if "html" not in (r.headers.get("Content-Type", "")):
+                return None
+            html = r.read(600000).decode("utf-8", errors="ignore")
+        for m in re.finditer(r'<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>',
+                             html, re.S | re.I):
+            try:
+                data = json.loads(m.group(1).strip())
+            except Exception:
+                continue
+            rec = buscar_recipe_ld(data)
+            if rec:
+                norm = normalizar_receta_ld(rec, url, ingredientes)
+                if norm:
+                    return norm
+        return extraer_receta_html(url, ingredientes, timeout=timeout)
+    except Exception:
+        return None
+
+
+def buscar_wp_paulina(ingredientes: List[str], timeout=10) -> List[str]:
+    """Recetas de Paulina Cocina vía su API de WordPress (fuente argentina directa)."""
+    try:
+        q = urllib.parse.quote_plus(" ".join(ingredientes[:2]))
+        url = f"https://www.paulinacocina.net/wp-json/wp/v2/search?search={q}&per_page=12"
+        req = urllib.request.Request(url, headers={"User-Agent": "semana-saludable/1.0"})
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            data = json.loads(r.read().decode("utf-8", errors="ignore"))
+        urls = []
+        for x in data if isinstance(data, list) else []:
+            u = x.get("url") or ""
+            if u.startswith("http") and u not in urls:
+                urls.append(u)
+        return urls
+    except Exception:
+        return []
+
+
+def menu_desde_hispano(ingredientes: List[str], dias: int, excluir: List[str]):
+    """Arma el menú con recetas REALES de sitios hispanos (prioridad AR)."""
+    excl = set(excluir or [])
+    base = ingredientes[:3]
+    urls = [u for u in buscar_wp_paulina(base) if u not in excl]
+    queries = []
+    if len(base) >= 2:
+        queries.append(f"receta {base[0]} {base[1]} fácil argentina")
+        queries.append(f"{base[0]} con {base[1]} receta paso a paso")
+    if base:
+        queries.append(f"recetas con {base[0]} cocina argentina")
+    # búsquedas directas dentro de los mejores sitios (traen la receta, no la portada)
+    for d in ["paulinacocina.net", "cookpad.com/ar", "recetasgratis.net"]:
+        queries.append(f"site:{d} {' '.join(base[:2])}")
+    if base:
+        queries.append(f"receta de {base[0]} fácil")
+    for q in queries[:7]:
+        for u in buscar_bing_recetas(q):
+            ul = u.lower()
+            if any(m in ul for m in MALAS_URL):
+                continue
+            path = urllib.parse.urlparse(u).path.rstrip("/").lower()
+            if path in ("", "/recetas", "/receta", "/recipes", "/ar"):
+                continue
+            if u not in urls and u not in excl:
+                urls.append(u)
+        if len(urls) >= dias + 12:
+            break
+    urls.sort(key=puntuar_url)
+    urls = urls[: dias + 10]
+    resultados = []
+    vistos_titulos = set()
+    ex = concurrent.futures.ThreadPoolExecutor(max_workers=5)
+    try:
+        futs = [ex.submit(extraer_receta_ld, u, ingredientes) for u in urls]
+        for fut in concurrent.futures.as_completed(futs, timeout=30):
+            try:
+                r = fut.result()
+            except Exception:
+                r = None
+            if not r:
+                continue
+            # descarta páginas-índice ("57 recetas fáciles...") y duplicados
+            if re.search(r"\d+\s*recetas|recetario", r["titulo"] or "", re.I):
+                continue
+            nt = normalizar(r["titulo"])
+            if r["id"] in {x["id"] for x in resultados} or nt in vistos_titulos:
+                continue
+            vistos_titulos.add(nt)
+            resultados.append(r)
+            if len(resultados) >= dias:
+                break
+    except Exception:
+        pass
+    finally:
+        ex.shutdown(wait=False, cancel_futures=True)
+    return resultados[:dias]
+
+
 # ---------------------------------------------------------------- modelos
 
 class GenerateIn(BaseModel):
@@ -881,7 +1248,7 @@ class GenerateIn(BaseModel):
     preferencias: List[str] = Field(default_factory=list)
     dias_nombres: Optional[List[str]] = None  # ej: ["Lunes","Miércoles"]
     excluir: List[str] = Field(default_factory=list)  # ids de recetas a evitar (variedad)
-    fuente: str = Field(default="auto")  # auto | internet | curadas
+    fuente: str = Field(default="auto")  # auto | argentina | internet | curadas
 
 
 # ---------------------------------------------------------------- endpoints
@@ -994,10 +1361,25 @@ def generate(body: GenerateIn):
             break
 
     # menú con recetas REALES de internet (no lista fija); con fallback a curadas
+    # auto = sitios argentinos primero, luego mundo, luego curadas
     modo = (body.fuente or "auto").lower()
     semana = semana_curada
     fuente_usada = "curadas"
-    if modo in ("auto", "internet"):
+    if modo in ("auto", "argentina"):
+        ar = []
+        try:
+            ar = menu_desde_hispano(ingredientes, dias, body.excluir or [])
+        except Exception:
+            ar = []
+        if len(ar) >= dias:
+            semana = ar[:dias]
+            fuente_usada = "argentina"
+        elif ar and modo == "argentina":
+            ids_ar = {w["id"] for w in ar}
+            faltan = [e for e in semana_curada if e["id"] not in ids_ar][: dias - len(ar)]
+            semana = ar + faltan
+            fuente_usada = "mixta"
+    if fuente_usada == "curadas" and modo in ("auto", "internet"):
         web = []
         try:
             web = menu_desde_internet(ingredientes, dias, body.excluir or [])
