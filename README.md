@@ -68,7 +68,7 @@ vercel --prod
 - Dictado por voz continuo (Web Speech API, es-ES) + carga escrita + chips rápidos.
 - Globos de días seleccionables (1–7) + preferencias (vegetariano/vegano/sin gluten/rápido/económico/proteína).
 - 40+ recetas saludables curadas (mexicana, italiana, oriental, libanesa…): tus ingredientes son la base, no el límite. Cada generación varía y el botón Otras ideas evita repetir.
-- Dos orígenes: **De internet** (recetas reales de TheMealDB con foto, traducidas automáticamente, con enlace a la fuente y video) y **Curadas** (selección saludable en español). Con fallback automático si internet falla.
+- Tres orígenes: **Argentina** (default: recetas reales de Paulina Cocina, Clarín, TN, Cookpad… extraídas en vivo), **Internet** (TheMealDB mundial con traducción) y **Curadas** (selección saludable en español). Con fallback automático.
 - Vista por día: título → detalle (ingredientes a comprar, pasos, tip).
 - Lista de compras agregada + copiar + exportar a WhatsApp.
 - Login (email + Google) y menús guardados por usuario en Supabase (o local sin cuenta).
