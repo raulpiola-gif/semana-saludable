@@ -1590,7 +1590,8 @@ def get_redis():
         return _rdb
     if _rdb_failed or redis_lib is None:
         return None
-    url = (os.environ.get("REDIS_URL") or "").strip()
+    url = ((os.environ.get("REDIS_URL") or "").strip()
+           or (os.environ.get("KV_URL") or "").strip())  # Vercel KV (Upstash)
     if not url:
         return None
     try:

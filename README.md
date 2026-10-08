@@ -33,10 +33,8 @@ curl -X POST http://localhost:8000/api/generate \
 ```
 
 ## 2) Redis Cloud (base + cuentas, 5 min)
-1. Crea cuenta en https://redis.io/cloud → **Create Database** (plan Free) → nombre `semana-saludable`.
-2. En la ficha de la DB copia el **Public endpoint** y la contraseña. La URL queda: `redis://default:PASS@HOST:PORT`.
-3. En Vercel: tu proyecto → **Settings → Environment Variables** → agrega `REDIS_URL` y `APP_SECRET` (cadena larga aleatoria) → **Redeploy**.
-4. En local: `export REDIS_URL=... APP_SECRET=...` + `pip install -r requirements.txt`.
+**La más fácil:** en Vercel → tu proyecto → pestaña **Storage** → **Create Database** → **KV** (o Upstash Redis) → Create y conéctala al proyecto. Vercel agrega las variables sola (`KV_URL`); solo suma `APP_SECRET` en Environment Variables y haz **Redeploy**.
+**Manual:** crea la DB en https://redis.io/cloud o https://upstash.com y setea `REDIS_URL=redis://default:PASS@HOST:PORT` (+ `APP_SECRET`) en Vercel → Redeploy. En local: `export REDIS_URL=... APP_SECRET=...`.
 > Sin `REDIS_URL` la app funciona igual, pero los menús se guardan solo en el navegador.
 
 ## 3) Login
