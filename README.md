@@ -2,7 +2,7 @@
 
 App que genera **recetas saludables para 1–7 días** a partir de tus ingredientes (escritos o **dictados por voz**), busca **inspiración real en internet** (TheMealDB + Google/YouTube), arma la **lista de compras** y permite **guardar menús en Supabase** + asignarlos a días del planner (pudiendo cambiarlos).
 
-**Stack:** Python `FastAPI` (backend) · HTML + Tailwind (frontend, UX moderna) · `Supabase` (DB) · `Vercel` (deploy) · `GitHub` (código).
+**Stack:** Python `FastAPI` (backend + auth propia) · HTML + Tailwind (frontend) · `Redis Cloud` (DB) · `Vercel` (deploy) · `GitHub` (código).
 
 ## Estructura
 ```
@@ -32,16 +32,19 @@ curl -X POST http://localhost:8000/api/generate \
  -d '{"ingredientes":["pollo","arroz","brocoli"],"dias":3,"preferencias":[]}'
 ```
 
-## 2) Supabase (5 min)
-1. Crea proyecto en https://supabase.com → copia **Project URL** y **anon key**.
-2. Ve a **SQL Editor** → pega el contenido de `supabase_schema.sql` → **Run** (re-ejecutable: si ya lo corriste antes, vuelve a correrlo para agregar login).
-3. Abre la app → botón **⚙️ Supabase** → pega URL + key → Guardar.
+## 2) Redis Cloud (base + cuentas, 5 min)
+1. Crea cuenta en https://redis.io/cloud → **Create Database** (plan Free) → nombre `semana-saludable`.
+2. En la ficha de la DB copia el **Public endpoint** y la contraseña. La URL queda: `redis://default:PASS@HOST:PORT`.
+3. En Vercel: tu proyecto → **Settings → Environment Variables** → agrega `REDIS_URL` y `APP_SECRET` (cadena larga aleatoria) → **Redeploy**.
+4. En local: `export REDIS_URL=... APP_SECRET=...` + `pip install -r requirements.txt`.
+> Sin `REDIS_URL` la app funciona igual, pero los menús se guardan solo en el navegador.
 
 ## 3) Login
-1. En Supabase ve a **Authentication → Sign In / Up** y verifica que **Email** esté habilitado.
-2. Para entrar sin confirmar el correo: **Authentication → Settings** → desactiva **Confirm email** (solo para desarrollo personal).
-3. (Opcional) Google: **Authentication → Providers → Google** → crea el Client ID en Google Cloud Console y agrega como **Redirect URL** la URL de tu app en Vercel.
-4. En la app pulsa **Ingresar** (arriba a la derecha) → crea tu cuenta o entra con Google. El botón **💾 Guardar menú** ahora guarda en tu cuenta (cada usuario ve solo sus menús; el planner sigue siendo local por dispositivo).
+Botón **Ingresar → Crear cuenta** (email + contraseña, sin confirmación por correo). Cada usuario ve solo sus menús. El planner sigue local por dispositivo.
+
+## Migración desde Supabase (una sola vez, opcional)
+1. Crea tu cuenta en la app.
+2. `pip install redis && python3 scripts/migrate_supabase_to_redis.py --owner-email TU@EMAIL --supabase-url ... --supabase-key ... --redis-url ...`
 
 ## 4) GitHub
 ```bash

@@ -11,6 +11,10 @@ import random
 import re
 import base64
 import hashlib
+import hmac
+import secrets
+import time
+import uuid
 import concurrent.futures
 import unicodedata
 import urllib.parse
@@ -18,7 +22,12 @@ import urllib.request
 import json
 from typing import List, Optional
 
-from fastapi import FastAPI, Query
+try:
+    import redis as redis_lib
+except ImportError:
+    redis_lib = None
+
+from fastapi import FastAPI, Query, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -1385,7 +1394,8 @@ class GenerateIn(BaseModel):
 
 @app.get("/api/health")
 def health():
-    return {"ok": True, "recetas": len(RECETAS), "ia": ia_configurada()}
+    return {"ok": True, "recetas": len(RECETAS), "ia": ia_configurada(),
+            "redis": get_redis() is not None}
 
 
 @app.get("/api/search")
@@ -1565,6 +1575,190 @@ def generate(body: GenerateIn):
         "inspiracion_internet": inspiracion,
         "nota": "Tus ingredientes son la base, no el límite: cada receta suma más alimentos para que sea completa y saludable.",
     }
+
+
+# ---------------------------------------------------------------- Redis Cloud
+# Base de datos: Redis Cloud (REDIS_URL). Auth propia con email + HMAC tokens.
+_rdb = None
+_rdb_failed = False
+
+
+def get_redis():
+    """Cliente Redis perezoso. None si no está configurado."""
+    global _rdb, _rdb_failed
+    if _rdb is not None:
+        return _rdb
+    if _rdb_failed or redis_lib is None:
+        return None
+    url = (os.environ.get("REDIS_URL") or "").strip()
+    if not url:
+        return None
+    try:
+        _rdb = redis_lib.from_url(url, decode_responses=True, socket_timeout=8)
+        _rdb.ping()
+        return _rdb
+    except Exception:
+        _rdb_failed = True
+        return None
+
+
+APP_SECRET = (os.environ.get("APP_SECRET") or "dev-secret-cambiar-en-produccion").strip()
+
+
+def hash_pw(pw: str) -> str:
+    salt = secrets.token_hex(16)
+    h = hashlib.pbkdf2_hmac("sha256", pw.encode(), bytes.fromhex(salt), 200_000).hex()
+    return f"{salt}${h}"
+
+
+def verify_pw(pw: str, stored: str) -> bool:
+    try:
+        salt, h = stored.split("$", 1)
+        calc = hashlib.pbkdf2_hmac("sha256", pw.encode(), bytes.fromhex(salt), 200_000).hex()
+        return hmac.compare_digest(calc, h)
+    except Exception:
+        return False
+
+
+def make_token(uid: str) -> str:
+    exp = int(time.time()) + 60 * 60 * 24 * 30
+    base = f"{uid}.{exp}"
+    sig = hmac.new(APP_SECRET.encode(), base.encode(), hashlib.sha256).hexdigest()
+    return f"{base}.{sig}"
+
+
+def parse_token(token: str) -> Optional[str]:
+    try:
+        uid, exp, sig = token.split(".")
+        if int(exp) < int(time.time()):
+            return None
+        good = hmac.new(APP_SECRET.encode(), f"{uid}.{exp}".encode(), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(good, sig):
+            return None
+        return uid
+    except Exception:
+        return None
+
+
+def uid_from_request(req: Request) -> str:
+    auth = req.headers.get("authorization", "")
+    if auth.lower().startswith("bearer "):
+        uid = parse_token(auth[7:].strip())
+        if uid:
+            return uid
+    raise HTTPException(status_code=401, detail="Sesión inválida. Ingresa de nuevo.")
+
+
+def need_redis():
+    r = get_redis()
+    if r is None:
+        raise HTTPException(status_code=503, detail="Base de datos no configurada (REDIS_URL).")
+    return r
+
+
+class AuthIn(BaseModel):
+    email: str
+    password: str
+
+
+class MenuIn(BaseModel):
+    titulo: str
+    dias: int = 7
+    base: list = Field(default_factory=list)
+    menu: list = Field(default_factory=list)
+    compras: list = Field(default_factory=list)
+    comensales: int = 4
+
+
+@app.post("/api/auth/register")
+def auth_register(body: AuthIn):
+    r = need_redis()
+    email = (body.email or "").strip().lower()
+    if "@" not in email or len(body.password or "") < 6:
+        raise HTTPException(status_code=400, detail="Email inválido o contraseña muy corta (mínimo 6).")
+    if r.exists(f"user:email:{email}"):
+        raise HTTPException(status_code=409, detail="Ese email ya tiene cuenta. Ingresa.")
+    uid = uuid.uuid4().hex
+    r.hset(f"user:{uid}", mapping={"email": email, "pw": hash_pw(body.password),
+                                   "created": time.strftime("%Y-%m-%dT%H:%M:%S")})
+    r.set(f"user:email:{email}", uid)
+    return {"token": make_token(uid), "email": email}
+
+
+@app.post("/api/auth/login")
+def auth_login(body: AuthIn):
+    r = need_redis()
+    email = (body.email or "").strip().lower()
+    uid = r.get(f"user:email:{email}")
+    if not uid:
+        raise HTTPException(status_code=401, detail="Email o contraseña incorrectos.")
+    stored = r.hget(f"user:{uid}", "pw") or ""
+    if not verify_pw(body.password or "", stored):
+        raise HTTPException(status_code=401, detail="Email o contraseña incorrectos.")
+    return {"token": make_token(uid), "email": email}
+
+
+@app.get("/api/auth/me")
+def auth_me(req: Request):
+    r = need_redis()
+    uid = uid_from_request(req)
+    email = r.hget(f"user:{uid}", "email") or ""
+    if not email:
+        raise HTTPException(status_code=401, detail="Sesión inválida. Ingresa de nuevo.")
+    return {"email": email}
+
+
+@app.get("/api/menus")
+def menus_list(req: Request):
+    r = need_redis()
+    uid = uid_from_request(req)
+    ids = r.zrevrange(f"menus:{uid}", 0, 23)
+    out = []
+    for mid in ids:
+        h = r.hgetall(f"menu:{mid}")
+        if not h or h.get("user_id") != uid:
+            continue
+        try:
+            out.append({"id": mid, "titulo": h.get("titulo", ""), "dias": int(h.get("dias", 7)),
+                        "base": json.loads(h.get("base", "[]")), "menu": json.loads(h.get("menu", "[]")),
+                        "compras": json.loads(h.get("compras", "[]")),
+                        "comensales": int(h.get("comensales", 4)),
+                        "created_at": h.get("created_at", "")})
+        except Exception:
+            continue
+    return {"menus": out}
+
+
+@app.post("/api/menus")
+def menus_create(body: MenuIn, req: Request):
+    r = need_redis()
+    uid = uid_from_request(req)
+    titulo = (body.titulo or "").strip()
+    if not titulo or not body.menu:
+        raise HTTPException(status_code=400, detail="Menú vacío.")
+    mid = uuid.uuid4().hex
+    ahora = time.strftime("%Y-%m-%dT%H:%M:%S")
+    r.hset(f"menu:{mid}", mapping={"user_id": uid, "titulo": titulo,
+                                   "dias": max(1, min(7, int(body.dias or 7))),
+                                   "base": json.dumps(body.base or []),
+                                   "menu": json.dumps(body.menu or []),
+                                   "compras": json.dumps(body.compras or []),
+                                   "comensales": max(1, min(12, int(body.comensales or 4))),
+                                   "created_at": ahora})
+    r.zadd(f"menus:{uid}", {mid: time.time()})
+    return {"id": mid}
+
+
+@app.delete("/api/menus/{mid}")
+def menus_delete(mid: str, req: Request):
+    r = need_redis()
+    uid = uid_from_request(req)
+    owner = r.hget(f"menu:{mid}", "user_id")
+    if not owner or owner != uid:
+        raise HTTPException(status_code=404, detail="Menú no encontrado.")
+    r.delete(f"menu:{mid}")
+    r.zrem(f"menus:{uid}", mid)
+    return {"ok": True}
 
 
 # Para `vercel dev` / uvicorn local

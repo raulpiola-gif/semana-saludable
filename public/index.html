@@ -7,7 +7,6 @@
 <title>Semana Saludable — Recetas con lo que tienes</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script>
@@ -56,9 +55,6 @@ tailwind.config = { theme: { extend: {
     </div>
     <div class="ml-auto flex items-center gap-2">
       <span id="authArea"></span>
-      <button onclick="abrirConfig()" class="inline-flex items-center gap-1.5 text-sm px-2.5 sm:px-3 py-2 rounded-xl border border-line bg-white hover:border-brand-500">
-        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h9M17 8h3M4 16h3M11 16h9"/><circle cx="15" cy="8" r="2"/><circle cx="9" cy="16" r="2"/></svg>
-        <span class="hidden sm:inline">Supabase</span></button>
       <button onclick="document.getElementById('misMenus').scrollIntoView({behavior:'smooth'})" class="inline-flex items-center gap-1.5 text-sm px-2.5 sm:px-3 py-2 rounded-xl bg-pine-950 text-white">
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5v13z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg>
         <span class="hidden sm:inline">Mis menús</span> <span id="badgeSaved" class="text-xs bg-brand-500 rounded-full px-1.5">0</span></button>
@@ -185,28 +181,11 @@ tailwind.config = { theme: { extend: {
   <div id="savedGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4"></div>
 </main>
 
-<footer class="max-w-6xl mx-auto px-3 sm:px-4 pb-10 text-xs text-slate-400 text-center">Hecho en Python (FastAPI) + Supabase + Vercel · <a class="underline" href="https://github.com/raulpiola-gif/semana-saludable" target="_blank">Código en GitHub</a></footer>
+<footer class="max-w-6xl mx-auto px-3 sm:px-4 pb-10 text-xs text-slate-400 text-center">Hecho en Python (FastAPI) + Redis Cloud + Vercel · <a class="underline" href="https://github.com/raulpiola-gif/semana-saludable" target="_blank">Código en GitHub</a></footer>
 
 <!-- MODAL DETALLE -->
 <dialog id="modal" class="rounded-3xl p-0 w-[min(640px,94vw)]">
   <div id="modalBody" class="p-4 sm:p-6"></div>
-</dialog>
-
-<!-- MODAL CONFIG -->
-<dialog id="cfgModal" class="rounded-3xl p-0 w-[min(480px,94vw)]">
-  <div class="p-4 sm:p-6">
-    <h3 class="font-display font-bold text-lg text-pine-950">Conectar Supabase</h3>
-    <p class="text-sm text-slate-500 mt-1">Tus datos ya vienen precargados. Solo guarda para verificar la conexión.</p>
-    <label class="text-xs font-semibold mt-4 block">SUPABASE_URL</label>
-    <input id="cfgUrl" placeholder="https://xyz.supabase.co" class="mt-1 w-full border border-line rounded-xl p-2.5 text-sm" />
-    <label class="text-xs font-semibold mt-3 block">SUPABASE_ANON_KEY</label>
-    <input id="cfgKey" placeholder="eyJ…" class="mt-1 w-full border border-line rounded-xl p-2.5 text-sm" />
-    <div class="flex gap-2 mt-4">
-      <button onclick="guardarConfig()" class="flex-1 py-2.5 rounded-xl bg-pine-950 text-white text-sm font-semibold">Guardar</button>
-      <button onclick="document.getElementById('cfgModal').close()" class="px-4 py-2.5 rounded-xl border border-line text-sm">Cerrar</button>
-    </div>
-    <p id="cfgEstado" class="text-xs mt-2 text-slate-500"></p>
-  </div>
 </dialog>
 
 <!-- MODAL EDITAR DÍA DEL PLANNER -->
@@ -253,10 +232,6 @@ tailwind.config = { theme: { extend: {
     <label class="text-xs font-semibold mt-3 block">Contraseña</label>
     <input id="authPass" type="password" placeholder="Mínimo 6 caracteres" class="mt-1 w-full border border-line rounded-xl p-2.5 text-sm" />
     <button id="authSend" onclick="enviarAuth()" class="mt-4 w-full py-2.5 rounded-xl bg-pine-950 text-white text-sm font-semibold">Ingresar</button>
-    <div class="flex items-center gap-2 my-3"><span class="flex-1 h-px bg-line"></span><span class="text-xs text-slate-400">o</span><span class="flex-1 h-px bg-line"></span></div>
-    <button onclick="loginGoogle()" class="w-full py-2.5 rounded-xl border border-line text-sm font-semibold bg-white inline-flex items-center justify-center gap-2">
-      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.4a4.6 4.6 0 0 1-2 3v2.6h3.2c1.9-1.7 3-4.3 3-7.5z"/><path d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.6c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.7A10 10 0 0 0 12 22z"/><path d="M6.4 14c-.2-.6-.3-1.3-.3-2s.1-1.4.3-2V7.3H3.1a10 10 0 0 0 0 9.4l3.3-2.7z"/><path d="M12 6c1.5 0 2.8.5 3.8 1.5L18.7 4A10 10 0 0 0 3.1 7.3l3.3 2.7C7.2 7.8 9.4 6 12 6z"/></svg>
-      Continuar con Google</button>
     <p id="authEstado" class="text-xs mt-3 text-slate-500"></p>
   </div>
 </dialog>
@@ -668,25 +643,29 @@ function renderPlanner(){
   actualizarWA();
 }
 
-// ---------------- supabase: guardar / listar
-// ---------------- supabase: cliente único reutilizable
-const SB_URL_DEFAULT = 'https://pzwefgyeawvpwiatosfx.supabase.co';
-const SB_KEY_DEFAULT = 'sb_publishable_SmMiHxIUbOB7Vdy-QkniUQ_yKPCzU4s';
-function sbCred(key){ return localStorage.getItem(key) || (key==='sb_url' ? SB_URL_DEFAULT : SB_KEY_DEFAULT); }
-let _sbClient = null, _sbKey = '';
-function sb(){
-  const url = sbCred('sb_url'), k = sbCred('sb_key');
-  if(!url || !k) return null;
-  if(!_sbClient || _sbKey !== url+'|'+k){
-    _sbClient = supabase.createClient(url, k);
-    _sbKey = url+'|'+k;
-  }
-  return _sbClient;
-}
-
-// ---------------- auth (login con Supabase)
+// ---------------- cuenta + nube (API propia + Redis Cloud)
 let modoAuth = 'in';
-let authWire = false;
+function token(){ return localStorage.getItem('token') || ''; }
+async function api(path, opts){
+  opts = opts || {};
+  const h = {'Content-Type': 'application/json'};
+  const t = token();
+  if(t) h['Authorization'] = 'Bearer ' + t;
+  let r;
+  try {
+    r = await fetch(API + path, { method: opts.method || 'GET', headers: h, body: opts.body });
+  } catch(_){
+    throw new Error('Sin conexión con el servidor.');
+  }
+  let d = null;
+  try { d = await r.json(); } catch(_){}
+  if(r.status === 401){
+    localStorage.removeItem('token'); localStorage.removeItem('email');
+    refrescarAuth();
+  }
+  if(!r.ok) throw new Error((d && d.detail) || ('Error ' + r.status));
+  return d;
+}
 function abrirAuth(){ setModoAuth(modoAuth); document.getElementById('authEstado').textContent=''; document.getElementById('authModal').showModal(); }
 function setModoAuth(m){
   modoAuth = m;
@@ -694,18 +673,17 @@ function setModoAuth(m){
   document.getElementById('tabUp').className = 'py-2 rounded-xl text-sm font-semibold ' + (m==='up'?'bg-white shadow':'text-slate-500');
   document.getElementById('authSend').textContent = m==='in' ? 'Ingresar' : 'Crear cuenta';
 }
-async function sesion(){
-  const c = sb(); if(!c) return null;
-  const { data } = await c.auth.getSession();
-  return data.session || null;
-}
 async function refrescarAuth(){
   const area = document.getElementById('authArea');
-  const c = sb();
-  if(!c){ area.innerHTML=''; return; }
-  const s = await sesion();
-  if(s){
-    const email = s.user.email || '';
+  let email = token() ? (localStorage.getItem('email') || '') : '';
+  if(token()){
+    try {
+      const me = await api('/api/auth/me');
+      email = me.email || email;
+      if(email) localStorage.setItem('email', email);
+    } catch(_){ email = ''; }
+  }
+  if(email){
     area.innerHTML = `<span class="inline-flex items-center gap-2 text-sm pl-1 pr-2 py-1 rounded-xl border border-line bg-white min-w-0">
       <span class="w-7 h-7 rounded-lg bg-pine-950 text-white grid place-items-center text-xs font-bold">${email.slice(0,1).toUpperCase()}</span>
       <span class="hidden md:inline max-w-[120px] truncate text-slate-600">${email}</span>
@@ -716,91 +694,45 @@ async function refrescarAuth(){
       Ingresar</button>`;
   }
 }
-function wireAuth(){
-  const c = sb();
-  if(!c || authWire) return;
-  authWire = true;
-  c.auth.onAuthStateChange(()=>{ refrescarAuth(); cargarGuardados(); });
-}
 async function enviarAuth(){
-  const c = sb();
-  if(!c){ document.getElementById('authEstado').textContent='Primero conecta Supabase con el botón de arriba.'; return; }
   const email = document.getElementById('authEmail').value.trim();
   const pass = document.getElementById('authPass').value;
   const est = document.getElementById('authEstado');
   if(!email || pass.length < 6){ est.textContent='Completa email y una contraseña de mínimo 6 caracteres.'; return; }
   est.textContent='Procesando…';
   try {
-    if(modoAuth==='in'){
-      const { error } = await c.auth.signInWithPassword({ email, password: pass });
-      if(error) throw error;
-      est.textContent='';
-      document.getElementById('authModal').close();
-      aviso('Sesión iniciada. Tus menús se guardan en tu cuenta.');
-    } else {
-      const { data, error } = await c.auth.signUp({ email, password: pass });
-      if(error) throw error;
-      if(data.session){
-        est.textContent='';
-        document.getElementById('authModal').close();
-        aviso('Cuenta creada. Ya puedes guardar menús.');
-      } else {
-        est.textContent='Cuenta creada. Revisa tu correo para confirmarla (o desactiva "Confirm email" en Supabase → Authentication → Settings).';
-      }
-    }
+    const d = await api(modoAuth==='in' ? '/api/auth/login' : '/api/auth/register',
+      { method: 'POST', body: JSON.stringify({ email: email, password: pass }) });
+    localStorage.setItem('token', d.token);
+    localStorage.setItem('email', d.email);
+    est.textContent='';
+    document.getElementById('authModal').close();
+    aviso(modoAuth==='in' ? 'Sesión iniciada. Tus menús se guardan en tu cuenta.' : 'Cuenta creada. Ya puedes guardar menús.');
     refrescarAuth(); cargarGuardados();
   } catch(e){ est.textContent = e.message || 'No se pudo completar. Intenta de nuevo.'; }
 }
-async function loginGoogle(){
-  const c = sb();
-  if(!c) return;
-  document.getElementById('authEstado').textContent = 'Abriendo Google…';
-  const { error } = await c.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: location.origin } });
-  if(error){
-    document.getElementById('authEstado').textContent = error.message.includes('not enabled')
-      ? 'Google aún no está habilitado en tu Supabase (Authentication → Providers → Google). Mientras tanto usa email y contraseña.'
-      : error.message;
-  }
-}
 async function cerrarSesion(){
-  const c = sb(); if(c) await c.auth.signOut();
+  localStorage.removeItem('token'); localStorage.removeItem('email');
   refrescarAuth(); cargarGuardados();
-}
-function abrirConfig(){
-  document.getElementById('cfgUrl').value = sbCred('sb_url');
-  document.getElementById('cfgKey').value = sbCred('sb_key');
-  document.getElementById('cfgModal').showModal();
-}
-async function guardarConfig(){
-  const url = document.getElementById('cfgUrl').value.trim(), key = document.getElementById('cfgKey').value.trim();
-  localStorage.setItem('sb_url', url); localStorage.setItem('sb_key', key);
-  document.getElementById('cfgEstado').textContent = 'Verificando…';
-  try { const c = supabase.createClient(url,key); const {error} = await c.from('menus_guardados').select('id').limit(1); document.getElementById('cfgEstado').textContent = error ? error.message : 'Conectado. Ya puedes ingresar y guardar menús.'; if(!error){ authWire = false; _sbClient = null; wireAuth(); refrescarAuth(); cargarGuardados(); } }
-  catch(e){ document.getElementById('cfgEstado').textContent = 'Revisa URL/key.'; }
 }
 
 async function guardarMenu(){
   if(!menuActual) return;
-  const cliente = sb();
-  if (cliente) {
-    const s = await sesion();
-    if(!s){ aviso('Ingresa con tu cuenta para guardar el menú en la nube.'); abrirAuth(); return; }
-    const titulo = prompt('Nombre para guardar este menú:', `Menú ${menuActual.menu.length} días · ${new Date().toLocaleDateString()}`);
-    if(!titulo) return;
-    const registro = { titulo, dias: menuActual.menu.length, base: menuActual.ingredientes_recibidos, menu: menuActual.menu, compras: menuActual.lista_compras, comensales: comensales, user_id: s.user.id };
-    let { error } = await cliente.from('menus_guardados').insert(registro);
-    if (error && /comensales/i.test(error.message || '')) {
-      // tabla anterior sin columna comensales: reintenta sin ese campo
-      const { comensales: _c, ...sinCom } = registro;
-      ({ error } = await cliente.from('menus_guardados').insert(sinCom));
+  const titulo = prompt('Nombre para guardar este menú:', `Menú ${menuActual.menu.length} días · ${new Date().toLocaleDateString()}`);
+  if(!titulo) return;
+  const registro = { titulo, dias: menuActual.menu.length, base: menuActual.ingredientes_recibidos, menu: menuActual.menu, compras: menuActual.lista_compras, comensales: comensales };
+  if(token()){
+    try {
+      await api('/api/menus', { method: 'POST', body: JSON.stringify(registro) });
+      aviso('Menú guardado en tu cuenta.');
+    } catch(e){
+      if(/sesi|401|válida|valida/i.test(e.message || '')){ aviso('Tu sesión venció. Ingresa de nuevo.'); abrirAuth(); return; }
+      saveLocal(registro);
+      aviso('Nube no disponible: guardado en este navegador.');
     }
-    if (error) { aviso('Supabase: '+error.message); }
-    else aviso('Menú guardado en tu cuenta.');
   } else {
-    const titulo = prompt('Aún no conectas Supabase: lo guardo en este navegador.\nNombre del menú:', `Menú ${menuActual.menu.length} días · ${new Date().toLocaleDateString()}`);
-    if(!titulo) return;
-    saveLocal({ titulo, dias: menuActual.menu.length, base: menuActual.ingredientes_recibidos, menu: menuActual.menu, compras: menuActual.lista_compras, comensales: comensales });
-    aviso('Menú guardado en este navegador.');
+    saveLocal(registro);
+    aviso('Menú guardado en este navegador. Ingresa para verlo en otros dispositivos.');
   }
   cargarGuardados();
 }
@@ -812,14 +744,10 @@ function saveLocal(r){
 async function cargarGuardados(){
   const grid = document.getElementById('savedGrid');
   let items = JSON.parse(localStorage.getItem('menus_local')||'[]');
-  const cliente = sb();
-  if (cliente) {
+  if(token()){
     try {
-      const s = await sesion();
-      let q = cliente.from('menus_guardados').select('*').order('created_at',{ascending:false}).limit(24);
-      q = s ? q.or(`user_id.eq.${s.user.id},user_id.is.null`) : q.is('user_id', null);
-      const { data, error } = await q;
-      if (!error && data) items = [...data, ...items];
+      const d = await api('/api/menus');
+      if(d && d.menus) items = [...d.menus, ...items];
     } catch(_){ /* sin nube: solo local */ }
   }
   document.getElementById('badgeSaved').textContent = items.length;
@@ -852,14 +780,15 @@ async function borrarGuardado(id){
   const sid = String(id);
   if (sid.startsWith('local-')) {
     localStorage.setItem('menus_local', JSON.stringify(JSON.parse(localStorage.getItem('menus_local')||'[]').filter(m=>String(m.id)!==sid)));
-  } else {
-    const cliente = sb(); if (cliente) await cliente.from('menus_guardados').delete().eq('id', id);
+  } else if(token()){
+    try { await api('/api/menus/' + encodeURIComponent(id), { method: 'DELETE' }); }
+    catch(e){ aviso(e.message); return; }
   }
   cargarGuardados();
 }
 
 // init
-renderChips(); renderDias(); setFuente('ia'); marcarIA(); renderPlanner(); wireAuth(); refrescarAuth(); cargarGuardados();
+renderChips(); renderDias(); setFuente('ia'); marcarIA(); renderPlanner(); refrescarAuth(); cargarGuardados();
 </script>
 </body>
 </html>
